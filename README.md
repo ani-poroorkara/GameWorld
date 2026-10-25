@@ -30,4 +30,10 @@ Phone and tablet layouts include 44–48px direction controls, an interact butto
 
 ## GitHub Pages
 
-The `prototype` directory is ready to become the repository root. `node build-pages.cjs` prepares only the five runtime game files in `dist/`. `.github/workflows/pages.yml` runs checks and deploys `dist/` when pushed to `main`. Select GitHub Actions as the repository Pages source. The repository and GitHub account connection still need to be selected before publishing.
+The `prototype` directory is ready to become the repository root. `node build-pages.cjs` prepares only the five runtime game files in `dist/`. `.github/workflows/pages.yml` runs checks and deploys `dist/` when manually started. Select GitHub Actions as the repository Pages source. The publishing repository is https://github.com/ani-poroorkara/GameWorld.
+
+## Private playtest prompt
+
+A shared access-code prompt appears before the menu, with an authorized-playtesters-only notice. Successful entry is remembered in this tab session. The code itself is kept out of the repository. This is a client-side courtesy gate and is bypassable; it is not a substitute for protected hosting.
+
+Automatic deployment is currently held. GitHub Pages publishing is manual until access-gate review is complete. Run `node access-check.cjs` to verify the gate.

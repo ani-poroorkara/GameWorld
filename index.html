@@ -5,7 +5,23 @@
   <title>MyWorld — The Wilderlands</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="in-menu">
+<body class="in-menu access-locked">
+  <section id="accessGate" class="access-gate" aria-labelledby="accessTitle">
+    <div class="access-panel">
+      <div class="opening-brand">✧ <span>MYWORLD</span></div>
+      <div class="eyebrow">INVITATION ONLY</div>
+      <h1 id="accessTitle">Private playtest.</h1>
+      <p>Welcome, traveller. Enter your playtest access code to continue.</p>
+      <form id="accessForm">
+        <label for="accessCode">Access code</label>
+        <input id="accessCode" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" required aria-describedby="accessError accessNotice">
+        <p id="accessError" class="access-error" role="alert"></p>
+        <button class="primary" id="accessSubmit" type="submit">Enter MyWorld <span>→</span></button>
+      </form>
+      <div id="accessNotice" class="access-notice"><strong>Authorized playtesters only.</strong><p>Unauthorized access, use, copying, or sharing is not permitted. Please keep your access code and unreleased game content private. If you have not been invited, please leave this page.</p></div>
+      <p class="access-session-note">Access stays unlocked for this tab’s session.</p>
+    </div>
+  </section>
   <div id="opening" class="opening"></div>
   <main class="game-shell">
     <div class="viewport" id="viewport">
@@ -44,8 +60,9 @@
     </div>
   </main>
   <dialog id="modal"><div id="modalContent"></div></dialog>
+  <script src="access.js"></script>
   <script src="world-life.js"></script>
   <script src="encounters.js"></script>
   <script src="game.js"></script>
-  <script>bootGame();</script>
+  <script>bootGame();initializeAccessGate();</script>
 </body></html>
