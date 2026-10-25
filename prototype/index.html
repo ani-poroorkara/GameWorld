@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MyWorld — The Wilderlands</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="in-menu">
+  <div id="opening" class="opening"></div>
+  <main class="game-shell">
+    <div class="viewport" id="viewport">
+      <canvas id="world" tabindex="0" aria-label="Explore the world using arrow keys or WASD. Press E to interact."></canvas>
+      <div class="hud-top-left">
+        <div class="location-pill"><span class="live-dot"></span><span id="locationName">Hearthstead</span></div>
+        <span class="eyebrow" id="lifeStatus">☀ 07:40 · Safe haven</span>
+        <span class="world-label" id="worldName">Ashwood Expanse</span>
+      </div>
+      <nav class="hud-top-right" aria-label="Game controls">
+        <button id="mapToggle" class="quiet">Atlas <kbd>M</kbd></button>
+        <button id="questButton" class="quiet">Quests</button>
+        <button id="gameSettings" class="quiet">Settings</button>
+        <button id="gameMenu" class="quiet">Menu</button>
+      </nav>
+      <section id="atlasInfo" class="atlas-info" hidden aria-label="Atlas information">
+        <span class="eyebrow">YOUR DISCOVERED WORLD</span>
+        <strong id="explored">0% explored</strong>
+        <span id="coordinates"></span>
+        <div class="legend"><span><i class="safe"></i> Safe haven</span><span><i class="town"></i> Settlement</span><span><i class="ruin"></i> Ruins</span><span><i class="rift"></i> Rift</span></div>
+      </section>
+      <section class="player-hud" aria-label="Character status">
+        <div class="avatar" id="travellerAvatar"></div>
+        <div class="player-hud-details"><div class="eyebrow"><span id="travellerLabel">Traveller</span><span id="level">LV. 1</span></div><div class="health-row"><span>HP</span><div class="health-track"><i id="hpBar"></i></div><b id="hpText">60 / 60</b></div><div class="player-resources"><span id="wallet">45 gold</span><span id="petStatus">No companion yet</span></div></div>
+      </section>
+      <nav class="hud-bottom-right" aria-label="Your belongings">
+        <button id="rest" class="quiet" title="Return to your village">⌂ Home</button>
+        <button id="satchel" class="quiet">Food & companion</button>
+        <button id="binder" class="binder-button">▤ Bustagam <span id="cardCount">4 cards</span></button>
+        <button id="sound" class="quiet" title="Toggle ambient sound" aria-label="Toggle ambient sound">♫ Off</button>
+      </nav>
+      <div id="speechBubble" class="speech-bubble" hidden role="region" aria-label="Character conversation"></div>
+      <div id="prompt" class="interaction-prompt" hidden><kbd>E</kbd><span>Interact</span></div>
+      <div id="toast" class="toast" role="status"></div>
+      <div class="touch-controls"><button data-move="0,-1" aria-label="Move north">↑</button><div><button data-move="-1,0" aria-label="Move west">←</button><button id="touchInteract">E</button><button data-move="1,0" aria-label="Move east">→</button></div><button data-move="0,1" aria-label="Move south">↓</button></div>
+    </div>
+  </main>
+  <dialog id="modal"><div id="modalContent"></div></dialog>
+  <script src="world-life.js"></script>
+  <script src="game.js"></script>
+  <script>bootGame();</script>
+</body></html>
