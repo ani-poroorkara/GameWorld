@@ -6,6 +6,7 @@ const paint=new Proxy({measureText:s=>({width:s.length*6}),createRadialGradient:
 function element(id){if(!elements.has(id))elements.set(id,{value:id==='climate'?'woodland':'',style:{},dataset:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},getContext:()=>paint,getBoundingClientRect:()=>({width:1000,height:520,left:0,top:0}),querySelector:()=>element(id+'child'),querySelectorAll:()=>[],addEventListener(){},focus(){},showModal(){this.open=true},close(){this.open=false},open:false});return elements.get(id)}
 const context=vm.createContext({console,Set,Map,Math,Date,JSON,Number,document:{body:element('body'),documentElement:{style:{setProperty(){}}},getElementById:element,querySelectorAll:()=>[],addEventListener(){}},window:{devicePixelRatio:1,matchMedia:()=>motionPreference,addEventListener(){}},localStorage:{setItem:(k,v)=>storage.set(k,v),getItem:k=>storage.get(k)||null},performance:{now:()=>clock},setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){}});
 vm.runInContext(fs.readFileSync(__dirname+'/world-life.js','utf8'),context);
+vm.runInContext(fs.readFileSync(__dirname+'/encounters.js','utf8'),context);
 vm.runInContext(fs.readFileSync(__dirname+'/game.js','utf8'),context);
 const run=code=>vm.runInContext(code,context);
 run("lifeMode='play'");
@@ -15,7 +16,7 @@ run("generate('ASHWOOD-724','woodland')");const terrain=run('JSON.stringify(tile
 run("generate('ASHWOOD-724','woodland'); draw(); showBinder(); closeModal(); toggleAtlas(); draw(); toggleAtlas()");
 assert.equal(run('state.hp'),60);run('interact(); $("doRest").onclick()');assert.equal(run('state.mana'),20);
 for(let i=1;i<=3;i++){
- run(`state.x=landmarks.find(p=>p.id==='ruin${i}').x; state.y=landmarks.find(p=>p.id==='ruin${i}').y; state.hp=60;state.mana=20;reveal();updateUI();interact();$('fight').onclick()`);
+ run(`state.x=landmarks.find(p=>p.id==='ruin${i}').x; state.y=landmarks.find(p=>p.id==='ruin${i}').y; state.hp=60;state.mana=20;reveal();updateUI();fightEnemy(enemies.find(e=>e.id==='guardian-ruin${i}'))`);
  for(let turn=0;turn<8&&run('combat!==null');turn++)run('playCard(state.mana>=5?2:0)');
  assert.equal(run(`state.relics.includes('ruin${i}')`),true,'Relic encounter must be winnable');run('closeModal()');
 }
@@ -62,4 +63,13 @@ run('state.x=40;state.y=44;positionSpeech(1000,520,0,0,32)');assert.equal(run('s
 run('state.x=42;state.y=43;updateUI();interact()');assert.equal(element('modal').open,false,'Animal conversation must stay over its head');assert.equal(run('speech.entity.id'),'dog1');assert(element('speechBubble').innerHTML.includes('Pet Bramble'));
 run('toggleAtlas()');assert.equal(element('atlasInfo').hidden,false);assert.equal(run('speech'),null);run('toggleAtlas()');assert.equal(element('atlasInfo').hidden,true);
 run('showQuests()');assert.equal(element('modal').open,true);assert(element('modalContent').innerHTML.includes('The sleeping gate'));run('closeModal();mainMenu()');
-console.log('PASS: world, character, economy, combat, save, pet and clock regressions; full-screen UI structure; non-blocking NPC and animal speech; distance dismissal; atlas-only progress; quests opened on demand.');
+// Opponents exist as world entities and only living ones remain after a win.
+run('closeModal();generate("ENEMY-CHECK","woodland");lifeMode="play"');
+assert.equal(run('enemies.filter(e=>e.type==="guardian").length'),3);assert(run('enemies.some(e=>e.type==="boar")'));assert(run('enemies.some(e=>e.type==="thief")'));
+assert.equal(run('enemies.every(e=>!isSafe(e.x,e.y))'),true);
+for(const type of ['guardian','thief','boar']){run(`(()=>{const e=enemies.find(e=>e.type==='${type}');state.x=e.x;state.y=e.y;reveal();enemyDialogue(e);drawEnemy(e,100,100,32)})()`);assert.equal(element('modal').open,false);assert(run('speech!==null'));assert(run(`enemyPortrait('${type}').includes('svg')`))}
+run('(()=>{const e=enemies.find(e=>e.type==="thief");fightEnemy(e);victory("test");closeModal()})()');assert(run('state.defeatedEnemies.some(id=>id.startsWith("thief"))'));assert.equal(run('enemyAlive(enemies.find(e=>e.type==="thief"))'),false);
+run('save()');const opponentSave=run('JSON.stringify({...state,seen:[...state.seen]})');run(`generate('ENEMY-CHECK','woodland',JSON.parse(${JSON.stringify(opponentSave)}))`);assert.equal(run('enemies.some(e=>state.defeatedEnemies.includes(e.id))'),false);
+assert(html.includes('viewport-fit=cover'));assert(html.includes('moreControls'));
+const css=fs.readFileSync(__dirname+'/style.css','utf8');assert(css.includes('(pointer:coarse)'));assert(css.includes('safe-area-inset-bottom'));
+console.log('PASS: world, character, economy, combat, save, pet and clock regressions; full-screen UI structure; non-blocking NPC and animal speech; distance dismissal; atlas-only progress; world sprites and portraits for guardians, thieves and boars; persistent enemy defeats; touch UI structure.');

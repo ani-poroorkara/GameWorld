@@ -21,3 +21,13 @@ Scope: browser-local single player, a fixed home village within generated terrai
 Run `node smoke-check.cjs` for world and gameplay checks. Run `node bundle.cjs` after changes to rebuild the standalone `MyWorld.html` file.
 
 The optional Google Fonts request improves typography; local serif and sans-serif fallbacks work offline. The game itself requires no packages or external assets.
+
+## Opponents and touch controls
+
+Guardians wait at ruins, thieves occupy roads, and boars appear near woodland trails. All have world sprites, overhead conversations, and combat portraits. Travel encounters create visible entities rather than an introductory blocking dialog. Defeated static enemies stay gone in the saved journey.
+
+Phone and tablet layouts include 44–48px direction controls, an interact button, compact status, a More menu, safe-area spacing, and scrollable combat and inventory panels. Portrait and landscape layouts are supported.
+
+## GitHub Pages
+
+The `prototype` directory is ready to become the repository root. `node build-pages.cjs` prepares only the five runtime game files in `dist/`. `.github/workflows/pages.yml` runs checks and deploys `dist/` when pushed to `main`. Select GitHub Actions as the repository Pages source. The repository and GitHub account connection still need to be selected before publishing.

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>MyWorld — The Wilderlands</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -18,8 +18,8 @@
       <nav class="hud-top-right" aria-label="Game controls">
         <button id="mapToggle" class="quiet">Atlas <kbd>M</kbd></button>
         <button id="questButton" class="quiet">Quests</button>
-        <button id="gameSettings" class="quiet">Settings</button>
-        <button id="gameMenu" class="quiet">Menu</button>
+        <button id="moreControls" class="quiet mobile-more" aria-expanded="false" aria-label="More game controls">☰</button><button id="gameSettings" class="quiet secondary-control">Settings</button>
+        <button id="gameMenu" class="quiet secondary-control">Menu</button>
       </nav>
       <section id="atlasInfo" class="atlas-info" hidden aria-label="Atlas information">
         <span class="eyebrow">YOUR DISCOVERED WORLD</span>
@@ -32,10 +32,10 @@
         <div class="player-hud-details"><div class="eyebrow"><span id="travellerLabel">Traveller</span><span id="level">LV. 1</span></div><div class="health-row"><span>HP</span><div class="health-track"><i id="hpBar"></i></div><b id="hpText">60 / 60</b></div><div class="player-resources"><span id="wallet">45 gold</span><span id="petStatus">No companion yet</span></div></div>
       </section>
       <nav class="hud-bottom-right" aria-label="Your belongings">
-        <button id="rest" class="quiet" title="Return to your village">⌂ Home</button>
+        <button id="rest" class="quiet secondary-control" title="Return to your village">⌂ Home</button>
         <button id="satchel" class="quiet">Food & companion</button>
         <button id="binder" class="binder-button">▤ Bustagam <span id="cardCount">4 cards</span></button>
-        <button id="sound" class="quiet" title="Toggle ambient sound" aria-label="Toggle ambient sound">♫ Off</button>
+        <button id="sound" class="quiet secondary-control" title="Toggle ambient sound" aria-label="Toggle ambient sound">♫ Off</button>
       </nav>
       <div id="speechBubble" class="speech-bubble" hidden role="region" aria-label="Character conversation"></div>
       <div id="prompt" class="interaction-prompt" hidden><kbd>E</kbd><span>Interact</span></div>
@@ -45,6 +45,7 @@
   </main>
   <dialog id="modal"><div id="modalContent"></div></dialog>
   <script src="world-life.js"></script>
+  <script src="encounters.js"></script>
   <script src="game.js"></script>
   <script>bootGame();</script>
 </body></html>
