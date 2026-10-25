@@ -2,7 +2,7 @@ name: Publish MyWorld to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -36,3 +36,4 @@ jobs:
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@v4
+
