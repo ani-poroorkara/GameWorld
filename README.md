@@ -36,4 +36,6 @@ The `prototype` directory is ready to become the repository root. `node build-pa
 
 A shared access-code prompt appears before the menu, with an authorized-playtesters-only notice. Successful entry is remembered in this tab session. The code itself is kept out of the repository. This is a client-side courtesy gate and is bypassable; it is not a substitute for protected hosting.
 
-Live playtest: https://ani-poroorkara.github.io/GameWorld/\n\nFuture GitHub Pages deployments are manual. The shared playtest code is distributed separately. Run `node access-check.cjs` to verify the gate.
+Live playtest: https://ani-poroorkara.github.io/GameWorld/
+
+Future GitHub Pages deployments are manual. The shared playtest code is distributed separately. Run `node access-check.cjs` to verify the gate.
