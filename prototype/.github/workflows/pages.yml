@@ -1,8 +1,6 @@
 name: Publish MyWorld to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -24,9 +22,19 @@ jobs:
       - uses: actions/checkout@v6
       - name: Check the game and prepare static files
         run: |
+          node --check access.js
+          node access-check.cjs
           node --check game.js
           node --check world-life.js
           node --check encounters.js
+          node --check combat-engine.js
+          node --check combat-scene.js
+          node --check guided-scene.js
+          node --check pixel-sprites.js
+          node --check map-effects.js
+          node --check map-combat.js
+          node --check combat.js
+          node combat-check.cjs
           node smoke-check.cjs
           node build-pages.cjs
       - uses: actions/configure-pages@v5
@@ -36,3 +44,5 @@ jobs:
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@v4
+
+

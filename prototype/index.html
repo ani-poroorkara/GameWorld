@@ -4,11 +4,35 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>MyWorld — The Wilderlands</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="combat.css">
+  <link rel="stylesheet" href="combat-polish.css">
+  <link rel="stylesheet" href="guided.css">
+  <link rel="stylesheet" href="map-combat.css">
 </head>
-<body class="in-menu">
+<body class="in-menu access-locked">
+  <section id="accessGate" class="access-gate" aria-labelledby="accessTitle">
+    <div class="access-panel">
+      <div class="opening-brand">✧ <span>MYWORLD</span></div>
+      <div class="eyebrow">INVITATION ONLY</div>
+      <h1 id="accessTitle">Private playtest.</h1>
+      <p>Welcome, traveller. Enter your playtest access code to continue.</p>
+      <form id="accessForm">
+        <label for="accessCode">Access code</label>
+        <input id="accessCode" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" required aria-describedby="accessError accessNotice">
+        <p id="accessError" class="access-error" role="alert"></p>
+        <button class="primary" id="accessSubmit" type="submit">Enter MyWorld <span>→</span></button>
+      </form>
+      <div id="accessNotice" class="access-notice"><strong>Authorized playtesters only.</strong><p>Unauthorized access, use, copying, or sharing is not permitted. Please keep your access code and unreleased game content private. If you have not been invited, please leave this page.</p></div>
+      <p class="access-session-note">Access stays unlocked for this tab’s session.</p>
+    </div>
+  </section>
   <div id="opening" class="opening"></div>
   <main class="game-shell">
     <div class="viewport" id="viewport">
+      <div class="map-zoom-controls" aria-label="Map zoom"><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomReset" aria-label="Reset map zoom"><span id="zoomValue">100%</span></button><button id="zoomIn" aria-label="Zoom in">+</button></div>
+      <div id="mapUnitPlayer" class="map-unit-hud player-unit" hidden></div><div id="mapUnitEnemy" class="map-unit-hud enemy-unit" hidden></div>
+      <section id="mapBattleStatus" class="map-battle-status" hidden aria-label="Map encounter status"></section>
+      <section id="mapBattlePanel" class="map-battle-panel" hidden aria-label="Combat cards and encounter results"></section>
       <canvas id="world" tabindex="0" aria-label="Explore the world using arrow keys or WASD. Press E to interact."></canvas>
       <div class="hud-top-left">
         <div class="location-pill"><span class="live-dot"></span><span id="locationName">Hearthstead</span></div>
@@ -43,9 +67,24 @@
       <div class="touch-controls"><button data-move="0,-1" aria-label="Move north">↑</button><div><button data-move="-1,0" aria-label="Move west">←</button><button id="touchInteract">E</button><button data-move="1,0" aria-label="Move east">→</button></div><button data-move="0,1" aria-label="Move south">↓</button></div>
     </div>
   </main>
+  <section id="guidedCombat" class="guided-overlay" hidden tabindex="-1" aria-label="Guided combat"></section>
   <dialog id="modal"><div id="modalContent"></div></dialog>
+  <script src="act1-data.js"></script>
+  <script src="act1-world.js"></script>
+  <script src="act1-puzzles.js"></script>
+  <script src="access.js"></script>
   <script src="world-life.js"></script>
   <script src="encounters.js"></script>
   <script src="game.js"></script>
-  <script>bootGame();</script>
+  <script src="combat-engine.js"></script>
+  <script src="combat-scene.js"></script>
+  <script src="guided-scene.js"></script>
+  <script src="combat.js"></script>
+  <script src="pixel-sprites.js"></script>
+  <script src="map-effects.js"></script>
+  <script src="map-combat.js"></script>
+  <script src="act1-state.js"></script>
+  <script src="act1.js"></script>
+  <script src="act1-campaign.js"></script>
+  <script>bootGame();initializeAccessGate();</script>
 </body></html>

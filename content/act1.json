@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "title": "MyWorld · Act 1",
+  "notes": "Playable Act 1 catalogue. Approved means enabled for this playtest, not prior user approval. New reversible balance, loot, puzzle, placement and dialogue defaults selected October 30, 2026. No upgrade recipe.",
+  "cards": [
+    {
+      "id": "punch",
+      "name": "Punch",
+      "category": "attack",
+      "effect": "attack",
+      "description": "Your basic unarmed attack.",
+      "acquisition": "Available at the start.",
+      "consumption": "permanent",
+      "perFightUses": 12,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 9,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true
+    },
+    {
+      "id": "pickaxe",
+      "name": "Pickaxe",
+      "category": "attack",
+      "effect": "attack",
+      "description": "An attack card retrieved from your home.",
+      "acquisition": "Found in the house or garage.",
+      "consumption": "permanent",
+      "perFightUses": 10,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 15,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true
+    },
+    {
+      "id": "stone-staff",
+      "name": "Stone Staff",
+      "category": "attack",
+      "effect": "attack",
+      "description": "Awarded after defeating the cave monster. Does not unlock Stone Throw.",
+      "acquisition": "Cave monster victory.",
+      "consumption": "permanent",
+      "perFightUses": 8,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 18,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true
+    },
+    {
+      "id": "bow",
+      "name": "Bow",
+      "category": "attack",
+      "effect": "attack",
+      "description": "Uses one Arrow for each attack. Duplicate drops increase owned quantity.",
+      "acquisition": "Independent 25% roll after defeating a thief; no guarantee.",
+      "consumption": "permanent",
+      "perFightUses": 10,
+      "successChance": null,
+      "ammoCardId": "arrows",
+      "levels": [
+        {
+          "level": 1,
+          "power": 14,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true
+    },
+    {
+      "id": "stone-throw",
+      "name": "Stone Throw",
+      "category": "attack",
+      "effect": "attack",
+      "description": "Placeholder name. A separate ability acquired from a chest.",
+      "acquisition": "Chest at (43,55); usable while Stone Staff is owned.",
+      "consumption": "permanent",
+      "perFightUses": 5,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 20,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true,
+      "requiresCardId": "stone-staff"
+    },
+    {
+      "id": "shield",
+      "name": "Shield",
+      "category": "defense",
+      "effect": "block",
+      "description": "A defense card retrieved from home.",
+      "acquisition": "Found in the house or garage.",
+      "consumption": "permanent",
+      "perFightUses": 5,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 10,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true
+    },
+    {
+      "id": "hand-block",
+      "name": "Hand Block",
+      "category": "defense",
+      "effect": "block",
+      "description": "Your basic defense available from the beginning.",
+      "acquisition": "Available at the start.",
+      "consumption": "permanent",
+      "perFightUses": 5,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 6,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true
+    },
+    {
+      "id": "stone-block",
+      "name": "Stone Block",
+      "category": "defense",
+      "effect": "block",
+      "description": "A defensive ability discovered after the cave encounter.",
+      "acquisition": "Post-cave chest at (110,32).",
+      "consumption": "permanent",
+      "perFightUses": 4,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 16,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": true
+    },
+    {
+      "id": "apple",
+      "name": "Apple",
+      "category": "utility",
+      "effect": "heal",
+      "description": "Restores 5 HP. Can be used during combat. Consumes one card per use.",
+      "acquisition": "Picked from the farm.",
+      "consumption": "consumable",
+      "perFightUses": 999,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 5,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": false
+    },
+    {
+      "id": "steak",
+      "name": "Steak",
+      "category": "utility",
+      "effect": "heal",
+      "description": "Restores 15 HP. Can be used during combat. Consumes one card per use.",
+      "acquisition": "Exactly one card when a defeated animal is killed. None when spared.",
+      "consumption": "consumable",
+      "perFightUses": 999,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 15,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": false
+    },
+    {
+      "id": "pet-distraction",
+      "name": "Pet Distraction",
+      "category": "utility",
+      "effect": "distraction",
+      "description": "50% chance to make one enemy attack miss. One use per fight, spent on success or failure.",
+      "acquisition": "Unlocked when taking a pet.",
+      "consumption": "permanent",
+      "perFightUses": 1,
+      "successChance": 0.5,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 0.5,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": false
+    },
+    {
+      "id": "arrows",
+      "name": "Arrows",
+      "category": "utility",
+      "effect": "ammo",
+      "description": "One Arrow is consumed per Bow attack. Quantity is shown on the card.",
+      "acquisition": "Independent 60% thief roll for 5-10 Arrows inclusive.",
+      "consumption": "ammunition",
+      "perFightUses": 999,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 0,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": false
+    },
+    {
+      "id": "map",
+      "name": "Map Card",
+      "category": "utility",
+      "effect": "map",
+      "description": "Reveals the local settlement map, not the entire world.",
+      "acquisition": "Given by the village map-giver.",
+      "consumption": "unlock",
+      "perFightUses": 999,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 0,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": false
+    },
+    {
+      "id": "save-the-kid",
+      "name": "Save the Kid",
+      "category": "quest",
+      "effect": "quest",
+      "description": "Working title. Updates with the next objective as the search progresses.",
+      "acquisition": "Appears automatically when the main quest is accepted.",
+      "consumption": "unlock",
+      "perFightUses": 999,
+      "successChance": null,
+      "ammoCardId": null,
+      "levels": [
+        {
+          "level": 1,
+          "power": 0,
+          "note": "Explicit Act 1 playtest value; no level-up recipe."
+        }
+      ],
+      "status": "approved",
+      "diceAllowed": false
+    }
+  ],
+  "enemies": [
+    {
+      "id": "boar",
+      "name": "Wild Boar",
+      "hp": 38,
+      "attack": 9,
+      "defense": 5,
+      "attackName": "Tusk charge",
+      "note": "Explicit editable playtest balance. Thieves remain on roads only.",
+      "status": "approved"
+    },
+    {
+      "id": "thief",
+      "name": "Road Thief",
+      "hp": 42,
+      "attack": 10,
+      "defense": 6,
+      "attackName": "Knife strike",
+      "note": "Explicit editable playtest balance. Thieves remain on roads only.",
+      "status": "approved"
+    },
+    {
+      "id": "bear",
+      "name": "Forest Bear",
+      "hp": 55,
+      "attack": 12,
+      "defense": 7,
+      "attackName": "Claw",
+      "note": "Explicit editable playtest balance. Thieves remain on roads only.",
+      "status": "approved"
+    },
+    {
+      "id": "cave-monster",
+      "name": "Cave Monster",
+      "hp": 78,
+      "attack": 13,
+      "defense": 7,
+      "attackName": "Living stone",
+      "note": "Explicit editable playtest balance. Thieves remain on roads only.",
+      "status": "approved"
+    },
+    {
+      "id": "air-monster",
+      "name": "Air Monster",
+      "hp": 92,
+      "attack": 15,
+      "defense": 8,
+      "attackName": "Gale strike",
+      "note": "Explicit editable playtest balance. Thieves remain on roads only.",
+      "status": "approved"
+    }
+  ],
+  "drops": [
+    {
+      "id": "thief-bow",
+      "name": "Thief · Bow",
+      "sourceType": "enemy",
+      "sourceId": "thief",
+      "cardId": "bow",
+      "min": 1,
+      "max": 1,
+      "chance": 0.25,
+      "status": "confirmed",
+      "condition": "victory",
+      "note": "Playtest definition. Independent rolls; no pity or first-drop guarantee."
+    },
+    {
+      "id": "thief-arrows",
+      "name": "Thief · Arrows",
+      "sourceType": "enemy",
+      "sourceId": "thief",
+      "cardId": "arrows",
+      "min": 5,
+      "max": 10,
+      "chance": 0.6,
+      "status": "confirmed",
+      "condition": "victory",
+      "note": "Playtest definition. Independent rolls; no pity or first-drop guarantee."
+    },
+    {
+      "id": "boar-steak",
+      "name": "Boar · Steak",
+      "sourceType": "enemy",
+      "sourceId": "boar",
+      "cardId": "steak",
+      "min": 1,
+      "max": 1,
+      "chance": 1,
+      "status": "confirmed",
+      "condition": "kill",
+      "note": "Playtest definition. Independent rolls; no pity or first-drop guarantee."
+    },
+    {
+      "id": "bear-steak",
+      "name": "Bear · Steak",
+      "sourceType": "enemy",
+      "sourceId": "bear",
+      "cardId": "steak",
+      "min": 1,
+      "max": 1,
+      "chance": 1,
+      "status": "confirmed",
+      "condition": "kill",
+      "note": "Playtest definition. Independent rolls; no pity or first-drop guarantee."
+    },
+    {
+      "id": "cave-staff",
+      "name": "Cave victory · Stone Staff",
+      "sourceType": "enemy",
+      "sourceId": "cave-monster",
+      "cardId": "stone-staff",
+      "min": 1,
+      "max": 1,
+      "chance": 1,
+      "status": "confirmed",
+      "condition": "victory",
+      "note": "Playtest definition. Independent rolls; no pity or first-drop guarantee."
+    },
+    {
+      "id": "chest-stone-throw",
+      "name": "Special chest · Stone Throw",
+      "sourceType": "chest",
+      "sourceId": "chest-stone-throw",
+      "cardId": "stone-throw",
+      "min": 1,
+      "max": 1,
+      "chance": 1,
+      "status": "confirmed",
+      "condition": "open",
+      "note": "Playtest definition. Independent rolls; no pity or first-drop guarantee."
+    },
+    {
+      "id": "chest-stone-block",
+      "name": "Post-cave chest · Stone Block",
+      "sourceType": "chest",
+      "sourceId": "chest-stone-block",
+      "cardId": "stone-block",
+      "min": 1,
+      "max": 1,
+      "chance": 1,
+      "status": "confirmed",
+      "condition": "open",
+      "note": "Playtest definition. Independent rolls; no pity or first-drop guarantee."
+    }
+  ]
+}

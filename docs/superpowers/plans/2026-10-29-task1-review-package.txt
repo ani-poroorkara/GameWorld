@@ -1,0 +1,713 @@
+﻿FILE: docs/superpowers/plans/2026-10-29-act1.md
+# Act 1 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement task-by-task. Track progress with checkboxes.
+
+**Goal:** Build the complete Act 1 adventure, starting execution with the village prologue.
+
+**Architecture:** Add a pure versioned campaign model and a narrow browser adapter to the existing dependency-free canvas prototype. Integrate metadata, inventory, world layout and encounters in later verified increments. Preserve legacy journeys until an explicit Act 1 new-game path is ready.
+
+**Tech Stack:** JavaScript UMD/CommonJS, browser canvas and localStorage, JSON, Node assert/test/VM. No new dependencies.
+
+**Spec:** `docs/superpowers/specs/2026-10-29-act1-design.md`, subordinate to confirmed facts in `docs/Act 1.md`.
+
+## Global constraints
+
+- Preserve simultaneous combat, hidden dice, per-fight use limits, one card type per round and practice save isolation.
+- Punch + Hand Block at start; Pickaxe + Shield at home; Apple 5 HP; Steak 15 HP; exactly one Steak for an animal kill.
+- Staff from cave victory; Throw from a separate chest; Block from a post-cave chest.
+- No invented Bow/Arrow drop probabilities, upgrade recipe, child locations, kidnapper identity or Act 2 choice outcome.
+- Pet Distraction is once per fight, succeeds 50%, cancels at most one attack and is spent on failure.
+- Thieves spawn only on roads. Nine passages are geographic continuations. Map Cards reveal only their own settlement region.
+- Keep quantity separate from level; keep unresolved content values null; draft validation is not runtime approval.
+- Preserve all pre-existing uncommitted files. Do not commit or publish unrelated work. All builds remain local.
+
+## Phase 0: documentation discovery â€” complete
+
+Sources: `docs/Act 1.md`, `content/act1.json`, `editor/model.js`, `editor/server.cjs`, `editor/README.md`, `prototype/README.md`, `prototype/game.js`, `prototype/world-life.js`, `prototype/encounters.js`, `prototype/combat-engine.js`, `prototype/combat.js`, `prototype/map-combat.js`, build scripts and existing checks. Two read-only discovery subagents inspected content and runtime independently.
+
+Allowed APIs/patterns:
+
+- `ContentModel.validateContent(data) -> {errors,warnings}` and UMD wrapper: `editor/model.js:1â€“23`.
+- `createEditorServer({contentFile,backupDir}) -> http.Server`: `editor/server.cjs:5`; preserve token/revision checks and atomic backups.
+- `generate(seed,climate,saved)`, `save()`, `showModal(html)`, `showBinder()`: `prototype/game.js:18,31,38,50`.
+- `showSpeech(entity,text,actions=[])`, `hydrateLife()`, `interactLife()`, `showQuests()`, `keepPet()`: `prototype/world-life.js:9,32,106,23,96`.
+- `battleCard(id,name,kind,power,uses,extra={})`, `battleFighter`, `battleValid`, `battleResolve`: `prototype/combat-engine.js:17â€“36`; no replacement resolver.
+- `finishMapEncounter(outcome)` is the active reward seam: `prototype/map-combat.js:22`. Practice uses whole-state snapshots in the same module.
+- VM stubs and runtime script ordering: `prototype/smoke-check.cjs:1â€“20`; new scripts also require index/bundle/Pages registration.
+
+Baseline: smoke-check, combat-check and access-check passed on October 29. Content model tests passed (5). Cross-session memory API was unavailable; local Act 1 notes and catalogue supplied the prior decisions.
+
+## Review focus
+
+1. Decline â†’ reload â†’ accept must create exactly one Quest Card, and no acceptance must mean no card.
+2. Repeat interactions/reload must never duplicate fixed rewards; collecting equipment before acceptance must count.
+3. Legacy saves and practice snapshots must retain inventory, map, quest and pending decisions correctly.
+4. Null draft values and off-road spawn destinations must not become playable assumptions.
+5. Out-of-order events must not skip prerequisites or expose an Act 2 choice control.
+
+## Milestone 1 â€” begin execution in this session
+
+### Task 1: versioned campaign state and journal model
+
+**Files:** create `prototype/act1-state.js`, `prototype/act1-state.test.cjs`.
+
+**Interfaces:** UMD `Act1State` / CommonJS; `createCampaign()`, `hydrateCampaign(value)`, `applyEvent(campaign,event)`, `questCard(campaign)`. Functions return serializable data; event application returns a new campaign rather than mutating its input. Define campaign `version:1`, `status` and `stage`, inventory `{[canonicalCardId]:{quantity,level}}`, flags, claimed reward IDs and local map IDs. Export identifiers/constants so adapter tests can use canonical event names.
+
+- [ ] Write failing tests for start inventory (only Punch/Hand Block), no unaccepted Quest Card, decline/reaccept, home gear before/after acceptance, local map idempotence, invalid/out-of-order events, unknown-version handling and JSON round trip.
+- [ ] Implement using the UMD pattern from `editor/model.js`, stable canonical IDs from `content/act1.json`, and the spec's progression. Implement main quest event prerequisites through the terminal dilemma in the pure model so later adapters can use it.
+- [ ] Test thief lead independent of Bow; cave gives Staff only once; separate Throw/Block claims; northern event cannot precede cave; terminal card contains no decision resolution.
+- [ ] Run `node --test prototype/act1-state.test.cjs`; record red/green evidence. Do not invent combat values or probability rolls.
+
+### Task 2: playable village prologue adapter
+
+**Files:** create `prototype/act1.js`, `prototype/act1-check.cjs`; modify `prototype/index.html`, `prototype/bundle.cjs`, `prototype/build-pages.cjs`, `prototype/README.md` and narrowly scoped runtime seams if wrappers cannot safely provide integration.
+
+**Consumes:** Task 1 `Act1State` functions. **Produces:** opt-in prologue action accessible through Quests; campaign state persists in `state.act1`; dialogue/journal/binder routes show the prologue's state. Label this as the prologue preview because legacy combat/world are still present.
+
+- [ ] Write a failing VM integration check using existing smoke-check patterns for opt-in, decline/revisit, acceptance, gear, map, save/reload and practice restoration. Upgrade action-button stubs to bind and click actual rendered dialogue actions; do not only invoke event helpers or inherit the empty `querySelectorAll` stub for this feature.
+- [ ] Preserve legacy behavior before opt-in. Starting preview does not reset character, gold, old inventory or world progress. Do not claim the legacy battle tray is already the final Act 1 card set.
+- [ ] Reuse existing resident `mara` for the neighbor; add Ivo and Tessa with unique `act1-` IDs as distinct map-giver/card-guide NPCs. Do not duplicate Mara or overwrite unrelated residents. Use escaped `showSpeech` text and normal/quest topics; never finalize unconfirmed settlement names.
+- [ ] At home, provide one-time Pickaxe/Shield collection. Map-giver grants a local Map Card once. For this milestone use a dedicated local-map view or separate map-knowledge predicate limited to `homeBounds`; test that `state.seen`, explored percentage and outside-bound terrain knowledge are unchanged.
+- [ ] Show accepted **Save the Kid** Quest Card and next objective; no card before acceptance. Expose quantities and levels for preview inventory in the binder without changing legacy battle-card claims. Never grant thief/cave progress just by dialogue or journal clicks.
+- [ ] Load state module before adapter, adapter after existing overrides and before boot; account for game.js's eager initial generation and rehydrate on later generation/reload. Preseed localStorage with an unsupported `act1.version`, load the actual complete script order, and prove the payload is preserved without resetting it or allowing preview writes. Register both scripts in Pages/bundle; retain editor exclusion.
+- [ ] Run new VM check and all three legacy checks. Build both outputs; check new scripts are embedded/copied. Update README with exact preview controls and remaining scope.
+
+### Task 3: independent milestone review and local verification
+
+**Files:** review Tasks 1â€“2; update this plan's progress ledger in `docs/superpowers/plans/2026-10-29-act1-progress.md`.
+
+- [ ] Fresh reviewer examines the new files and scoped diff for both spec compliance and code quality. Verify no probability/upgrade/story inventions and no initial-save overwrite.
+- [ ] Fix important findings through the implementer, then request scoped re-review.
+- [ ] Run state tests, Act 1 VM checks, smoke, combat and access checks, editor tests, bundle and Pages build. Inspect a browser if available and report any unverified visual behavior honestly.
+- [ ] Mark only delivered tasks complete; leave the rest open. No push/deploy. Retain a concise handoff with exact commands and remaining work.
+
+## Milestone 2 â€” content publication and inventory/combat
+
+**Decision dependency before Tasks 4â€“5 become fully playable:** attack/block powers and per-fight limits, Staff/Throw equipment interaction, food-at-full-health policy, and whether dice may attach to food/Pet Distraction need explicit balance decisions. Preserve fixed 5/15 healing and 50% distraction unless a rule change is explicitly approved; the existing resolver's generic die scaling must not silently change these values. Record approved values in the catalogue and add tests before publishing them. Draft schema/export validation can proceed without those decisions, but no task may manufacture values to unblock runtime integration. Bow/Arrow probabilities remain separately parked and do not gate the main story.
+
+### Task 4: approved runtime content export
+
+**Files:** extend `editor/model.js`, `editor/app.js`, tests, `content/act1.json`; create `content/campaign-act1.json`, runtime export builder and exported runtime catalogue.
+
+**Interfaces:** add explicit draft/approved status without replacing v1 data silently; export approved definitions only. `buildRuntimeContent(catalogue,campaign) -> {cards,enemies,rewards,world}` fails on unresolved required runtime fields.
+
+- [ ] Test migration of existing schema; null preservation; unknown references; prerequisite cycles; draft exclusions; confirmed probability validation.
+- [ ] Copy existing validator/form patterns. Add campaign entities, stable IDs and versioned export, while preserving Save/conflict/backups.
+- [ ] Verify model/server tests, round-trip authoring, and public allowlist excludes server/backups/tokens. No assumption that editor Save publishes a game.
+
+### Task 5: canonical inventory, new Act 1 journey and battle cards
+
+**Files:** extend `act1-state.js`, `act1.js`, `combat.js`, `world-life.js`, `game.js`; add inventory checks.
+
+**Interfaces:** `quantity(campaign,id)`, `grant(campaign,id,count,level)`, `consume(campaign,id,count)`; `playerBattleCards()` branches only for an actual new Act 1 journey. Preview state does not silently replace existing journey inventory.
+
+- [ ] Test explicit new-game entry, legacy-save preservation, initial two cards, duplicate quantities versus levels, no duplicate type per round, and practice restoration.
+- [ ] Connect approved runtime catalogue with explicit balance values before making attack cards playable. Unknown powers remain blocked, never defaulted from null.
+- [ ] Implement Apple/Steak satchel and battle use with 5/15 HP, quantity overlay, max-HP clamp, invalid-hand no-spend and exactly-once valid commitment.
+- [ ] Branch farm harvest into campaign inventory in real Act 1 mode; do not keep granting only legacy `state.food.apple`. Test farm acquisition â†’ quantity display â†’ eat/commit â†’ quantity decrement, and preserve the old farm behavior in legacy mode.
+- [ ] Implement Bow/Arrow consumption (one per committed Bow), zero-ammo validation and Pet Distraction once/fight/50%/one attack. Test success, failure, reset and practice isolation against the existing resolver.
+- [ ] Remove bread/stew only from real Act 1 mode; preserve legacy saves. Run combat, inventory, smoke and Act 1 checks.
+
+### Task 6: map knowledge and expanded campaign regions
+
+**Files:** campaign JSON, `game.js`, `world-life.js`, `encounters.js`, `act1.js`; create map checks.
+
+**Interfaces:** deterministic `buildAct1World(seed,definition) -> {tiles,landmarks,regions,passages}`; `regionAt(x,y)`; settlement map ownership separate from `state.seen`.
+
+- [ ] Test target 144Ã—144 layout across a fixed seed corpus, main/side-route connectivity, nine entrances, home placement and safe village bounds.
+- [ ] Generate nested safe core/forest/cracked region/mountain boundary; copy trail-carving from `game.js:18â€“28`, parameterize all fixed coordinate/index assumptions.
+- [ ] Place road lead, living cave, distinct chest locations, northern approach, shorter return loops and visible branch landmarks. Require spawn destination path for every thief path, including travel spawns.
+- [ ] Test map cards reveal only assigned settlement bounds and do not mark the region physically explored. Preserve fog outside bounds. Test phone atlas controls and world generation/frame-time before locking map dimensions.
+
+## Milestone 3 â€” complete main story and persistent rewards
+
+### Task 7: road lead, cave encounter and chest events
+
+**Files:** `act1.js`, campaign JSON, `encounters.js`, `map-combat.js`; add event checks.
+
+**Interfaces:** call Task 1 event application only after confirmed real outcome; stable encounter/chest IDs; pending reward state persists across reload.
+
+- [ ] Test a real designated thief victory grants lead without Bow; loss/escape/practice cannot advance it. Keep random drops disabled while probabilities remain null.
+- [ ] Stage cave reveal and approved cave opponent; victory grants one Staff with no Throw. Negotiation cannot impersonate required boss victory.
+- [ ] Implement separate Throw chest and cave-gated Block chest with one-time claims and NPC hints. Test repeat/reload/out-of-order interactions.
+- [ ] Verify saved encounters stay cleared, quests update next objectives, and no random card is a progression gate.
+
+### Task 8: animal outcomes and configured thief drops
+
+**Files:** `map-combat.js`, `act1.js`, `combat.js`, approved reward metadata; tests.
+
+- [ ] Test animal victory creates a pending choice before further farming, reload recovers it, spare clears/no Steak, kill clears/exactly one Steak, double click/reload cannot duplicate reward, negotiation grants no kill reward.
+- [ ] Add spare/kill controls to existing map outcome panel; preserve keyboard/touch accessibility and practice checkpoint restoration.
+- [ ] Implement generic reward rolls only for explicit numeric approved chances. Null Bow/Arrow chance means no invented roll or first-drop guarantee. Seed/inject RNG in tests; Arrow quantity range is inclusive 5â€“10; duplicate Bow increases quantity.
+- [ ] Keep deferred drop configuration visible in editor; do not declare random drop feature complete until its actual probabilities are supplied.
+
+### Task 9: northern air opponent and unresolved ending
+
+**Files:** campaign JSON, `act1.js`, `encounters.js`, `map-combat.js`; ending checks.
+
+- [ ] Test northern approach prerequisite and cave victory, final encounter win/loss/retry, and reload after dilemma.
+- [ ] Present the monster's demand after the final confrontation; leave truth and child locations unresolved. Render â€œAct 1 complete â€” decision continues in Act 2,â€ with no child-choice controls.
+- [ ] Remove legacy relic-gate ending only in new Act 1 mode. Other eight passages describe future continuations without teleporting or generating another map.
+- [ ] Verify complete fresh-save main path with no optional chest, random Bow or side quest required.
+
+## Milestone 4 â€” optional activity and authoring
+
+### Task 10: side Quest Cards and animal escort
+
+**Files:** campaign JSON, `act1-state.js`, `act1.js`, `world-life.js`; side quest checks.
+
+- [ ] Add quest definitions with accept/decline/progress and separate cards; reuse main quest state-machine patterns.
+- [ ] Implement proposed runaway sequence (two clues â†’ animal â†’ pen) and Pickaxe footpath shortcut; rewards are fixed proposed Apples/route access, never new card types.
+- [ ] Test reload mid-escort, repeated reward, switching companions, abandoning/returning, pre-collected equipment and main quest independence.
+
+### Task 11: proposed puzzle set and world density pass
+
+**Files:** campaign JSON, new `prototype/act1-puzzles.js`, adapter and puzzle tests.
+
+**Interfaces:** `puzzleState(id)`, `applyPuzzleAction(id,action) -> {state,solved,feedback}`; persist results within `state.act1`.
+
+- [ ] Resume the explicitly parked puzzle design decision with the user before product implementation. Review proposed rules/rewards/retry behavior in the design and record the selected rules; this dependency is not fulfilled by this plan's proposal text.
+- [ ] After that decision, implement each selected puzzle as a separate small task/check: Farmer's Channels; Three Witnesses; Changing Forest; Stone Mechanism; Northern Passage.
+- [ ] Before each puzzle, pin its proposed rules and solution in tests. Keep rules marked new/proposed rather than earlier confirmed; do not implement irreversible costs or a child-selection puzzle.
+- [ ] Test correct/incorrect/reset/reload paths, unlimited retry proposal, nonvisual clue equivalents, no random unsolvable state and no consumed Pickaxe.
+- [ ] Test main route spacing, optional branch discoveries and shortcuts; adjust density using traversal evidence rather than adding travel time.
+
+### Task 12: complete campaign editor and export preview
+
+**Files:** `editor/app.js`, `editor/model.js`, `editor/style.css`, content and tests.
+
+- [ ] Expose quest stages, NPC topics, chest placement/rewards, region/passages and puzzle parameters through the existing explicit-save workflow.
+- [ ] Validate IDs/references, map bounds, dependencies, missing final stages and draft versus runtime approval. Preview dialogue and quest cards with escaped text.
+- [ ] Verify concurrent edit conflict, backup restore, export round-trip and no unintended publishing. Document local authoring controls.
+
+## Milestone 5 â€” full Act 1 acceptance
+
+### Task 13: end-to-end, accessibility, performance and release review
+
+- [ ] Fresh journey: ordinary village â†’ decline â†’ reload â†’ accept â†’ home â†’ road thief â†’ cave â†’ chests â†’ air monster â†’ unresolved dilemma.
+- [ ] Alternate journeys: accept with gear already collected; no Bow ever drops; spare every animal; skip all optional puzzles/chests; defeat/escape/retry; companion replacement; practice at every major stage.
+- [ ] Run every Node check and editor test, generated bundle smoke check and public file allowlist check.
+- [ ] Browser test desktop and narrow portrait/landscape: dialogue action reachability, quantity overlays, clue readability, journal, map bounds, focus/keyboard and reduced motion. Measure expanded-map generation and movement.
+- [ ] Fresh independent whole-change review. Resolve important findings; update user docs and task ledger. Build local artifacts. Deployment requires a separate user request.
+
+## Execution record
+
+See `2026-10-29-act1-progress.md`. This session's declared execution scope is Tasks 1â€“3, which begins the full plan. Tasks 4â€“13 remain planned; they must not be described as implemented.
+FILE: docs/superpowers/specs/2026-10-29-act1-design.md
+# MyWorld Act 1: expanded design
+
+Date: October 29, 2026. Source of confirmed requirements: `docs/Act 1.md`.
+
+## Intent and authority
+
+Turn the peaceful village and surrounding wilderness into a story about choosing to help a neighbor while confronting an unresolved personal loss. Exploration should provide useful discoveries and conversations between story events, rather than longer empty walks.
+
+The original Act 1 note remains the authority for previously agreed facts. This document supplies implementation decisions and proposed creative detail; these additions are not claims about earlier approval. The user requested expansion, a complete task plan, and beginning execution with subagents. Execution starts with the prologue milestone below. Later systems have explicit dependencies and acceptance criteria in the plan.
+
+## Approach
+
+Three approaches were considered: replace the entire prototype at once; build a disconnected Act 1 demo; or introduce a versioned campaign layer and integrate it incrementally. Use the campaign layer: it preserves the existing combat and practice behavior, provides isolated tests, and lets the existing village become playable early. This is an implementation choice made for this request.
+
+Continue using dependency-free JavaScript, the existing canvas renderer, browser-local saves, JSON authoring, and Node checks. Do not replace the combat engine or add hosting services.
+
+## Confirmed boundaries
+
+- Start with Punch and Hand Block. Pickaxe and Shield are collected at home.
+- Fourteen named card entries include the main Quest Card. Side quests may have their own quest cards.
+- Apple heals 5 HP; Steak heals 15 HP. Both are consumed once per use and work in combat. Healing clamps to maximum HP.
+- Preserve simultaneous commitments, per-fight use limits, hidden dice, one card type per round, and practice isolation.
+- Animal victory presents spare/kill: spare clears the animal and gives no Steak; kill gives exactly one Steak, regardless of species.
+- Bow uses one Arrow per committed attack; thief Arrow drops contain 5â€“10. Bow and Arrow probabilities remain undecided. No guaranteed first Bow.
+- Pet Distraction is once per fight, succeeds with 50% probability, and cancels at most one enemy attack. A failed use is still spent.
+- Cave victory awards Stone Staff. Stone Throw comes only from its own chest. Stone Block requires a chest found after cave victory.
+- Thieves exist only on roads, including travel spawn destinations.
+- A settlement Map Card provides knowledge only within that settlement's region. Map knowledge and physically explored tiles are separate.
+- Nine mountain passages are geographic continuations. No teleportation or unrestricted world reveal.
+- End Act 1 with the air monster presenting the dilemma. No actionable child-selection control, resolution, identified kidnapper, or invented child location.
+- No combining recipe, automatic level benefits, or Stone Wall card.
+
+## World and pacing
+
+Target a 144 Ã— 144 campaign map, subject to performance verification. Retain the existing village footprint and coordinates during incremental integration; the full map grows around it with a deliberate northern route. Build a mountain enclosure, a safe village/farm core, forest routes and clearings, and a cracked outer region. Keep paths connected across seeds, with a road lead, cave approach, post-cave search loop and northern passage.
+
+Place nine passage entrances around the boundary. The northern entrance is the Act 1 endpoint; other exits show locked continuation descriptions until subsequent acts exist. Crossing later unlocks the next region, rather than teleporting to an unrelated generated map. Route graph and passage coordinates belong in campaign JSON.
+
+Use existing displayed settlement names until spellings are confirmed. Hedonville, the spoken forest name, and Cracked Lands are working labels, not silently finalized place names.
+
+Planned density: a distinct activity or visible landmark about every 10â€“16 traversable tiles along intended routes. Offer short branches and return shortcuts. Do not force optional quests or random loot to unlock the main quest.
+
+## Main story and quest model
+
+1. **Peaceful home:** villagers describe ordinary work, farm animals wander, and the player can learn cards and obtain a local map.
+2. **The request:** a neighbor explains that their child is missing. The player recalls their own lost son without supplying his fate. The player can accept or say â€œNot yet.â€ Declining preserves exploration and later acceptance.
+3. **Prepare and ask:** acceptance creates the working-title Quest Card, **Save the Kid**. Its next objective asks for village information and home equipment. Retrieving gear remains optional for acceptance; previously collected gear counts.
+4. **Road lead:** defeating the designated road thief supplies the cave lead independently of any item drop. No random Bow gate. Other villagers retain quest and ordinary conversation topics.
+5. **Living cave:** interaction reveals that the cave is the opponent. Only victory advances this beat and grants one Staff reward.
+6. **Search:** a post-cave chest provides Stone Block. A separate forest cache provides Stone Throw; neither reward is implicitly granted with the Staff.
+7. **Northern passage:** after the cave, reach and confront the air monster. Present the two children as the monster's demand, without establishing where either child is or whether the demand is truthful. Freeze the quest at â€œAct 1 complete â€” decision continues in Act 2.â€ Exploration and journal viewing remain possible.
+
+Store accepted state, objective progress, completed events, claimed rewards, inventory, map ownership and pending animal decisions inside saved player state. Event application must be idempotent. Out-of-order optional discoveries cannot skip prerequisites. An unaccepted quest has no Quest Card.
+
+## Village cast: proposed staging
+
+Use provisional names, clearly editable in content later:
+
+- **Mara**, the neighbor: reuse the existing `mara` village resident, with new preview dialogue rather than a duplicate NPC. Practical, warm, now struggling to stay composed. Offers the request, remembers a decline, and welcomes later help.
+- **Ivo**, map-giver: careful about boundaries and landmarks; supplies the local Map Card once and offers optional chest hints.
+- **Tessa**, card guide: patient and concrete; explains commitment, quantities versus levels, and how equipment is collected.
+- **Nell**, farmer: brisk and fond of animals; offers ordinary farm conversation and the proposed irrigation/runaway activities.
+- Existing residents remain available; additional villagers are introduced as needed rather than requiring a finalized cast now.
+
+Keep dialogue concise and use existing speaker bubbles with action buttons. Escape authored text before rendering. Do not reveal the cause of the kidnapping or imply a known fate for the player's son.
+
+## Cards, inventory and resolution
+
+Use canonical IDs from `content/act1.json`, quantities shown as numbers, and separate level fields. Equipment quantities do not create duplicate plays in a round. Initial equipment is level 1; levels have no invented progression mechanic.
+
+Separate a campaign inventory from legacy `ownedCards`, which currently only understands fire/herb. Old saves retain their legacy journey and may explicitly start a new Act 1 journey later. During the prologue milestone, campaign progress is an opt-in, separately labelled preview within the existing world; it must not claim the legacy battles already obey the new inventory.
+
+Final healing proposal: commit food with the rest of the hand, validate ownership before resolution, consume exactly once after a valid commitment, and let the existing simultaneous resolver determine healing/damage together. An invalid hand spends nothing. Full-health food handling must be documented and tested in the combat task. Food and ammo spent during practice are restored with its checkpoint.
+
+Do not turn null combat powers or probabilities into zero or assumed defaults. Add explicit runtime publication status to content before full catalogue integration; validated draft data is not automatically playable content.
+
+## Chests and exploration rewards
+
+Proposed placements: an optional village-edge teaching cache with Apple; a forest fork cache with Stone Throw; a cave rear shelf chest with Stone Block, unlocked only after victory; supply caches with existing cards or tips. Each chest has a stable ID, prerequisites, one-time claim and optional NPC hint. No unapproved Bow or Arrow probability is needed for these fixed rewards.
+
+## Optional quest and puzzle proposals
+
+These are proposed expanded rules, not previously approved puzzle details. Keep them data-authored and outside the initial implementation milestone. Before implementing them, resume the explicitly parked puzzle decision with the user; proposals alone do not override that earlier deferral.
+
+| Activity | Proposed rule | Completion/reward | Safety |
+| --- | --- | --- | --- |
+| Runaway farm animal | Talk to Nell, inspect two hoofprint clues, find the animal, escort it to the pen | Quest Card updates; 2 Apples | Friendly interaction; no kill requirement; recover escort after reload |
+| Farmer's Channels | Rotate three channel junctions to connect the cistern to two dry beds | Restore farm flow; 2 Apples | Unlimited retry/reset proposed; no resource consumption |
+| Three Witnesses | Compare a farmer's timing, map-giver's road observation and neighbor's account; select the supported road direction | Optional clearer road marker | Wrong answer invites rereading; no main-quest lock |
+| Changing Forest | Follow three persistent environmental clues through a branching trail; wrong branches return to a familiar junction | Forest cache clue | Deterministic per seed; accessible text clues alongside visual cues |
+| Stone Mechanism / blocked footpath | Use home Pickaxe to clear a shortcut; independently align three etched stones with observed marks | Opens cave return loop / chest access | No consumable softlock; resettable arrangement |
+| Northern Passage | Read wind markers, order three shelter switches from sheltered to exposed | Safe approach to final opponent | Never asks the Act 2 child choice; retry does not injure player |
+
+No required reward comes from a chance drop. Puzzles support keyboard/touch interaction, readable clues, reset and save recovery.
+
+## Editor and publication
+
+Keep explicit Save, validation, revision conflict protection and backups. Extend the schema additively for campaign regions, passages, NPC topics, quest stages, chests and puzzles. Validate references and prerequisite cycles. Runtime export must include only approved playable values and must exclude editor tokens, backups, server files and drafts. Update bundle and public allowlists explicitly for each new runtime module.
+
+## Milestones and completion
+
+**Milestone 1, execute now:** pure tested campaign state; opt-in village prologue with acceptance/reacceptance, journal/card views, home gear and local map; independent review, regression checks and regenerated local builds. This begins the full plan and is not the complete act.
+
+**Milestones 2â€“5:** approved inventory/combat integration, connected expanded world, main story and persistent rewards, side quests/puzzles and content editor support. The plan contains every task and its dependencies.
+
+Act 1 is complete only when a fresh player can follow acceptance â†’ road lead â†’ living cave â†’ optional search â†’ northern air opponent â†’ unresolved dilemma, with reload-safe progress and all confirmed mechanics. Current milestone completion must never be reported as full Act 1 completion.
+
+## Risks and verification
+
+The runtime overrides combat and UI functions through ordered scripts; tests must exercise the final loaded functions. Practice restores whole state and must restore campaign state too. Initial world generation happens while game.js loads, so adapters must initialize safely for both already-generated and new worlds. The working tree already contains substantial user changes: preserve them, keep new edits scoped, and do not stage, commit or publish them wholesale.
+
+Use Node state-machine tests, existing VM gameplay tests, editor model/server tests, public bundle checks, and browser checks for new dialogue/journal controls. Performance-test the larger map before committing its dimensions. No deployment is included in this request.
+FILE: prototype/act1-state.js
+(function(root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.Act1State = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+  'use strict';
+
+  const VERSION = 1;
+  const CARDS = Object.freeze({
+    PUNCH: 'punch', HAND_BLOCK: 'hand-block', PICKAXE: 'pickaxe', SHIELD: 'shield',
+    STAFF: 'stone-staff', THROW: 'stone-throw', BLOCK: 'stone-block', BOW: 'bow',
+    ARROWS: 'arrows', APPLE: 'apple', STEAK: 'steak', PET: 'pet-distraction',
+    MAP: 'map', QUEST: 'save-the-kid'
+  });
+  // Pass {type: EVENTS.NAME}. LOCAL_MAP_COLLECTED also requires mapId: a stable
+  // settlement-region ID. Outcome events are for verified real encounters only;
+  // this pure model neither runs combat nor decides whether an encounter was won.
+  const EVENTS = Object.freeze({
+    QUEST_ACCEPTED: 'quest-accepted', QUEST_DECLINED: 'quest-declined',
+    VILLAGE_INFORMATION: 'village-information', HOME_GEAR_COLLECTED: 'home-gear-collected',
+    LOCAL_MAP_COLLECTED: 'local-map-collected', ROAD_THIEF_DEFEATED: 'road-thief-defeated',
+    CAVE_REVEALED: 'cave-revealed', CAVE_DEFEATED: 'cave-defeated',
+    THROW_CHEST_CLAIMED: 'throw-chest-claimed', BLOCK_CHEST_CLAIMED: 'block-chest-claimed',
+    NORTHERN_PASSAGE_REACHED: 'northern-passage-reached', AIR_MONSTER_DEFEATED: 'air-monster-defeated',
+    DILEMMA_PRESENTED: 'dilemma-presented'
+  });
+  const STAGES = Object.freeze({
+    VILLAGE: 'village', PREPARING: 'preparing', ROAD: 'road', CAVE: 'cave',
+    CAVE_BATTLE: 'cave-battle', NORTH: 'north', AIR_BATTLE: 'air-battle',
+    REVELATION: 'revelation', DILEMMA: 'dilemma'
+  });
+  const flagNames = ['accepted', 'declined', 'villageInformation', 'homeGear', 'roadLead',
+    'caveRevealed', 'caveDefeated', 'northernPassage', 'airMonsterDefeated', 'dilemmaPresented'];
+  const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  const id = value => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value);
+  const positive = value => Number.isSafeInteger(value) && value > 0;
+  const clone = value => JSON.parse(JSON.stringify(value));
+  function error(code, message) { const result = new Error(message); result.code = code; return result; }
+  function invalid() { throw error('ACT1_INVALID_SAVE', 'Invalid Act 1 save; retain the original saved data.'); }
+
+  function progress(flags) {
+    if (!flags.accepted) return {status: flags.declined ? 'declined' : 'available', stage: STAGES.VILLAGE};
+    let stage = STAGES.PREPARING;
+    if (flags.homeGear && flags.villageInformation) stage = STAGES.ROAD;
+    if (flags.roadLead) stage = STAGES.CAVE;
+    if (flags.caveRevealed) stage = STAGES.CAVE_BATTLE;
+    if (flags.caveDefeated) stage = STAGES.NORTH;
+    if (flags.northernPassage) stage = STAGES.AIR_BATTLE;
+    if (flags.airMonsterDefeated) stage = STAGES.REVELATION;
+    if (flags.dilemmaPresented) stage = STAGES.DILEMMA;
+    return {status: flags.dilemmaPresented ? 'complete' : 'active', stage};
+  }
+
+  /** createCampaign() -> CampaignV1. No legacy inventory or world state is read. */
+  function createCampaign() {
+    return {
+      version: VERSION, status: 'available', stage: STAGES.VILLAGE,
+      inventory: {[CARDS.PUNCH]: {quantity: 1, level: 1}, [CARDS.HAND_BLOCK]: {quantity: 1, level: 1}},
+      flags: Object.fromEntries(flagNames.map(name => [name, false])),
+      claimedRewardIds: [], localMapIds: [], completedEvents: []
+    };
+  }
+
+  /** hydrateCampaign(value) -> detached CampaignV1. null/undefined means absent.
+   * Throws ACT1_UNSUPPORTED_VERSION / ACT1_INVALID_SAVE for existing unreadable
+   * saves. Callers must preserve that original save and disable campaign writes;
+   * do not catch these errors by replacing the save with createCampaign().
+   */
+  function hydrateCampaign(value) {
+    if (value === null || value === undefined) return createCampaign();
+    if (!record(value)) invalid();
+    if (own(value, 'version') && value.version !== VERSION) {
+      throw error('ACT1_UNSUPPORTED_VERSION', 'Unsupported Act 1 version; retain the original saved data.');
+    }
+    if (value.version !== VERSION || !record(value.inventory) || !record(value.flags)) invalid();
+    for (const name of flagNames) if (typeof value.flags[name] !== 'boolean') invalid();
+    for (const key of ['claimedRewardIds', 'localMapIds', 'completedEvents']) {
+      if (!Array.isArray(value[key]) || value[key].some(item => typeof item !== 'string') ||
+        new Set(value[key]).size !== value[key].length) invalid();
+    }
+    if (!value.localMapIds.every(id)) invalid();
+    const canonicalIds = Object.values(CARDS);
+    for (const [key, item] of Object.entries(value.inventory)) {
+      if (!canonicalIds.includes(key) || !record(item) || !positive(item.quantity) || !positive(item.level)) invalid();
+    }
+    for (const key of [CARDS.PUNCH, CARDS.HAND_BLOCK]) if (!own(value.inventory, key)) invalid();
+    const f = value.flags;
+    if ((f.roadLead && !(f.accepted && f.homeGear && f.villageInformation)) ||
+      (f.caveRevealed && !f.roadLead) || (f.caveDefeated && !f.caveRevealed) ||
+      (f.northernPassage && !f.caveDefeated) || (f.airMonsterDefeated && !f.northernPassage) ||
+      (f.dilemmaPresented && !f.airMonsterDefeated)) invalid();
+    const derived = progress(f);
+    if (value.stage !== derived.stage || value.status !== derived.status) invalid();
+    if (own(value.inventory, CARDS.QUEST) !== f.accepted ||
+      (f.accepted && value.inventory[CARDS.QUEST].quantity !== 1)) invalid();
+    for (const [claimed, keys] of [
+      ['home-gear', [CARDS.PICKAXE, CARDS.SHIELD]], ['cave-staff', [CARDS.STAFF]],
+      ['chest-stone-throw', [CARDS.THROW]], ['chest-stone-block', [CARDS.BLOCK]]
+    ]) {
+      if (value.claimedRewardIds.includes(claimed) && keys.some(key => !own(value.inventory, key))) invalid();
+    }
+    if (value.claimedRewardIds.includes('home-gear') !== f.homeGear ||
+      value.claimedRewardIds.includes('cave-staff') !== f.caveDefeated ||
+      (value.claimedRewardIds.includes('chest-stone-block') && !f.caveDefeated)) invalid();
+    for (const mapId of value.localMapIds) {
+      if (!value.claimedRewardIds.includes('map:' + mapId)) invalid();
+    }
+    if (value.localMapIds.length && (!value.inventory[CARDS.MAP] ||
+      value.inventory[CARDS.MAP].quantity !== value.localMapIds.length)) invalid();
+    try { return clone(value); } catch (_) { invalid(); }
+  }
+
+  function grant(state, cardId) {
+    if (own(state.inventory, cardId)) state.inventory[cardId].quantity += 1;
+    else state.inventory[cardId] = {quantity: 1, level: 1};
+  }
+  function claim(state, rewardId, cardIds) {
+    if (state.claimedRewardIds.includes(rewardId)) return false;
+    state.claimedRewardIds.push(rewardId);
+    for (const cardId of cardIds) grant(state, cardId);
+    return true;
+  }
+
+  /** applyEvent(campaign, {type, mapId?}) -> detached CampaignV1.
+   * Unknown, malformed, repeated and prerequisite-blocked events are value no-ops.
+   * Fixed reward IDs, rather than caller-supplied IDs, prevent duplicate grants.
+   */
+  function applyEvent(campaign, event) {
+    const state = hydrateCampaign(campaign);
+    if (!record(event) || !Object.values(EVENTS).includes(event.type)) return state;
+    const f = state.flags;
+    let applied = false;
+    let eventKey = event.type;
+    function set(name, allowed = true) {
+      if (allowed && !f[name]) { f[name] = true; applied = true; }
+    }
+    switch (event.type) {
+      case EVENTS.QUEST_ACCEPTED:
+        if (!f.accepted) { set('accepted'); grant(state, CARDS.QUEST); }
+        break;
+      case EVENTS.QUEST_DECLINED: set('declined', !f.accepted); break;
+      case EVENTS.VILLAGE_INFORMATION: set('villageInformation'); break;
+      case EVENTS.HOME_GEAR_COLLECTED:
+        if (claim(state, 'home-gear', [CARDS.PICKAXE, CARDS.SHIELD])) set('homeGear');
+        break;
+      case EVENTS.LOCAL_MAP_COLLECTED:
+        if (id(event.mapId) && !state.localMapIds.includes(event.mapId)) {
+          claim(state, 'map:' + event.mapId, [CARDS.MAP]);
+          state.localMapIds.push(event.mapId);
+          eventKey += ':' + event.mapId;
+          applied = true;
+        }
+        break;
+      case EVENTS.ROAD_THIEF_DEFEATED: set('roadLead', f.accepted && f.homeGear && f.villageInformation); break;
+      case EVENTS.CAVE_REVEALED: set('caveRevealed', f.roadLead); break;
+      case EVENTS.CAVE_DEFEATED:
+        if (f.caveRevealed && !f.caveDefeated) {
+          set('caveDefeated'); claim(state, 'cave-staff', [CARDS.STAFF]);
+        }
+        break;
+      case EVENTS.THROW_CHEST_CLAIMED: applied = claim(state, 'chest-stone-throw', [CARDS.THROW]); break;
+      case EVENTS.BLOCK_CHEST_CLAIMED:
+        if (f.caveDefeated) applied = claim(state, 'chest-stone-block', [CARDS.BLOCK]);
+        break;
+      case EVENTS.NORTHERN_PASSAGE_REACHED: set('northernPassage', f.caveDefeated); break;
+      case EVENTS.AIR_MONSTER_DEFEATED: set('airMonsterDefeated', f.northernPassage); break;
+      case EVENTS.DILEMMA_PRESENTED: set('dilemmaPresented', f.airMonsterDefeated); break;
+    }
+    if (applied) {
+      if (!state.completedEvents.includes(eventKey)) state.completedEvents.push(eventKey);
+      Object.assign(state, progress(f));
+    }
+    return state;
+  }
+
+  /** questCard(campaign) -> null | {id,name,quantity,level,status,stage,nextObjective}.
+   * This journal view has no Act 2 choice controls or resolved story facts.
+   */
+  function questCard(campaign) {
+    const state = hydrateCampaign(campaign);
+    if (!state.flags.accepted) return null;
+    const objectives = {
+      [STAGES.PREPARING]: !state.flags.villageInformation ? 'Speak with the villagers about the search.' : 'Collect the Pickaxe and Shield at home.',
+      [STAGES.ROAD]: 'Find the lead from the designated thief on the road.',
+      [STAGES.CAVE]: 'Follow the road lead to the old cave.',
+      [STAGES.CAVE_BATTLE]: 'Defeat the living cave monster.',
+      [STAGES.NORTH]: 'Reach the northern passage. You may search the area for optional chests.',
+      [STAGES.AIR_BATTLE]: 'Confront the air monster at the northern passage.',
+      [STAGES.REVELATION]: "Hear the air monster's demand.",
+      [STAGES.DILEMMA]: 'Act 1 complete â€” decision continues in Act 2.'
+    };
+    return {id: CARDS.QUEST, name: 'Save the Kid', quantity: 1, level: 1,
+      status: state.status, stage: state.stage, nextObjective: objectives[state.stage]};
+  }
+
+  return {VERSION, CARDS, EVENTS, STAGES, createCampaign, hydrateCampaign, applyEvent, questCard};
+});
+FILE: prototype/act1-state.test.cjs
+const {test} = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+const modulePath = path.join(__dirname, 'act1-state.js');
+// The first red run reports the missing public API as an assertion, not a loader error.
+const api = fs.existsSync(modulePath) ? require(modulePath) : {};
+const {EVENTS: E, createCampaign, hydrateCampaign, applyEvent, questCard} = api;
+const event = (state, type, extra = {}) => applyEvent(state, {type, ...extra});
+function prepared() {
+  let state = createCampaign();
+  for (const type of [E.QUEST_ACCEPTED, E.VILLAGE_INFORMATION, E.HOME_GEAR_COLLECTED]) state = event(state, type);
+  return state;
+}
+function caveWon() {
+  let state = prepared();
+  for (const type of [E.ROAD_THIEF_DEFEATED, E.CAVE_REVEALED, E.CAVE_DEFEATED]) state = event(state, type);
+  return state;
+}
+
+test('new campaign owns only canonical starting cards and no unaccepted Quest Card', () => {
+  assert.equal(typeof createCampaign, 'function', 'campaign API must exist');
+  const state = createCampaign();
+  assert.equal(state.version, 1);
+  assert.deepEqual(state.inventory, {punch: {quantity: 1, level: 1}, 'hand-block': {quantity: 1, level: 1}});
+  assert.equal(questCard(state), null);
+  assert.equal(state.status, 'available');
+  assert.equal(state.stage, 'village');
+});
+
+test('decline survives reload, later acceptance creates exactly one updating card', () => {
+  let state = event(createCampaign(), E.QUEST_DECLINED);
+  assert.equal(state.status, 'declined');
+  assert.equal(questCard(state), null);
+  state = hydrateCampaign(JSON.parse(JSON.stringify(state)));
+  state = event(state, E.QUEST_ACCEPTED);
+  assert.equal(questCard(state).id, 'save-the-kid');
+  assert.equal(questCard(state).name, 'Save the Kid');
+  assert.equal(state.inventory['save-the-kid'].quantity, 1);
+  assert.equal(state.stage, 'preparing');
+  const accepted = structuredClone(state);
+  state = event(event(state, E.QUEST_ACCEPTED), E.QUEST_DECLINED);
+  assert.deepEqual(state, accepted);
+});
+
+test('home gear before acceptance counts and repeated collection cannot duplicate it', () => {
+  let state = event(createCampaign(), E.HOME_GEAR_COLLECTED);
+  assert.equal(state.inventory.pickaxe.quantity, 1);
+  assert.equal(state.inventory.shield.quantity, 1);
+  assert.equal(questCard(state), null);
+  state = event(event(state, E.QUEST_ACCEPTED), E.VILLAGE_INFORMATION);
+  assert.equal(state.stage, 'road');
+  const before = structuredClone(state);
+  state = event(hydrateCampaign(JSON.parse(JSON.stringify(state))), E.HOME_GEAR_COLLECTED);
+  assert.deepEqual(state, before);
+});
+
+test('preparation journal updates when information and home gear are collected after accepting', () => {
+  let state = event(createCampaign(), E.QUEST_ACCEPTED);
+  assert.match(questCard(state).nextObjective, /villag/i);
+  state = event(state, E.VILLAGE_INFORMATION);
+  assert.match(questCard(state).nextObjective, /home/i);
+  state = event(state, E.HOME_GEAR_COLLECTED);
+  assert.equal(state.stage, 'road');
+  assert.match(questCard(state).nextObjective, /road/i);
+});
+
+test('settlement map ownership is local and idempotent, with quantity separate from level', () => {
+  let state = event(createCampaign(), E.LOCAL_MAP_COLLECTED, {mapId: 'village'});
+  assert.deepEqual(state.localMapIds, ['village']);
+  assert.deepEqual(state.inventory.map, {quantity: 1, level: 1});
+  const once = structuredClone(state);
+  state = event(hydrateCampaign(state), E.LOCAL_MAP_COLLECTED, {mapId: 'village'});
+  assert.deepEqual(state, once);
+  state = event(state, E.LOCAL_MAP_COLLECTED, {mapId: 'other-settlement'});
+  assert.deepEqual(state.localMapIds, ['village', 'other-settlement']);
+  assert.deepEqual(state.inventory.map, {quantity: 2, level: 1});
+  assert.equal(state.seen, undefined);
+  for (const mapId of [undefined, '', '__proto__', '*', 123]) {
+    assert.deepEqual(event(state, E.LOCAL_MAP_COLLECTED, {mapId}), state);
+  }
+});
+
+test('invalid and out-of-order events cannot advance an unaccepted or unprepared quest', () => {
+  for (const state of [createCampaign(), event(createCampaign(), E.QUEST_ACCEPTED)]) {
+    for (const type of [E.ROAD_THIEF_DEFEATED, E.CAVE_REVEALED, E.CAVE_DEFEATED,
+      E.BLOCK_CHEST_CLAIMED, E.NORTHERN_PASSAGE_REACHED, E.AIR_MONSTER_DEFEATED, E.DILEMMA_PRESENTED]) {
+      assert.deepEqual(event(state, type), state, type);
+    }
+    for (const bad of [null, {}, [], 'quest-accepted', {type: 'choose-own-child'}, {type: '__proto__'}]) {
+      assert.deepEqual(applyEvent(state, bad), state);
+    }
+  }
+});
+
+test('road victory supplies the lead without a Bow and cave victory requires cave reveal', () => {
+  let state = prepared();
+  assert.deepEqual(event(state, E.CAVE_REVEALED), state);
+  state = event(state, E.ROAD_THIEF_DEFEATED);
+  assert.equal(state.stage, 'cave');
+  assert.equal(state.inventory.bow, undefined);
+  assert.equal(state.inventory.arrows, undefined);
+  assert.deepEqual(event(state, E.CAVE_DEFEATED), state);
+  state = event(state, E.CAVE_REVEALED);
+  assert.equal(state.stage, 'cave-battle');
+  state = event(state, E.CAVE_DEFEATED);
+  assert.deepEqual(state.inventory['stone-staff'], {quantity: 1, level: 1});
+  assert.equal(state.inventory['stone-throw'], undefined);
+  assert.equal(state.inventory['stone-block'], undefined);
+  assert.deepEqual(event(hydrateCampaign(state), E.CAVE_DEFEATED), state);
+});
+
+test('Throw chest is independent while Block chest requires cave victory and both are one-time', () => {
+  let state = event(createCampaign(), E.THROW_CHEST_CLAIMED);
+  assert.equal(state.inventory['stone-throw'].quantity, 1);
+  assert.equal(questCard(state), null);
+  assert.deepEqual(event(state, E.BLOCK_CHEST_CLAIMED), state);
+  state = caveWon();
+  for (const type of [E.THROW_CHEST_CLAIMED, E.BLOCK_CHEST_CLAIMED]) {
+    state = event(state, type);
+    assert.deepEqual(event(hydrateCampaign(state), type), state);
+  }
+  assert.equal(state.inventory['stone-throw'].quantity, 1);
+  assert.equal(state.inventory['stone-block'].quantity, 1);
+  assert.equal(new Set(state.claimedRewardIds).size, state.claimedRewardIds.length);
+});
+
+test('main route reaches unresolved dilemma without either optional chest or random drops', () => {
+  let state = prepared();
+  assert.deepEqual(event(state, E.NORTHERN_PASSAGE_REACHED), state);
+  state = caveWon();
+  assert.deepEqual(event(state, E.AIR_MONSTER_DEFEATED), state);
+  assert.deepEqual(event(state, E.DILEMMA_PRESENTED), state);
+  state = event(state, E.NORTHERN_PASSAGE_REACHED);
+  assert.deepEqual(event(state, E.DILEMMA_PRESENTED), state);
+  state = event(state, E.AIR_MONSTER_DEFEATED);
+  assert.equal(state.status, 'active');
+  state = event(state, E.DILEMMA_PRESENTED);
+  assert.equal(state.status, 'complete');
+  assert.equal(state.stage, 'dilemma');
+  const card = questCard(state);
+  assert.match(card.nextObjective, /Act 1 complete.*decision continues in Act 2/i);
+  assert.equal(card.choices, undefined);
+  assert.equal(state.inventory['stone-block'], undefined);
+  for (const type of Object.values(E)) {
+    if ([E.LOCAL_MAP_COLLECTED, E.THROW_CHEST_CLAIMED, E.BLOCK_CHEST_CLAIMED].includes(type)) continue;
+    assert.deepEqual(event(state, type), state, type);
+  }
+  assert.deepEqual(event(state, 'choose-neighbor-child'), state);
+});
+
+test('event application and hydration return independent serializable data without input mutation', () => {
+  const state = prepared();
+  const saved = JSON.stringify(state);
+  Object.freeze(state.flags);
+  Object.freeze(state.inventory);
+  Object.freeze(state);
+  const next = event(state, E.ROAD_THIEF_DEFEATED);
+  assert.equal(JSON.stringify(state), saved);
+  next.inventory.punch.quantity = 7;
+  assert.equal(state.inventory.punch.quantity, 1);
+  const loaded = hydrateCampaign(JSON.parse(JSON.stringify(next)));
+  assert.deepEqual(loaded, next);
+  loaded.localMapIds.push('another-map');
+  assert.deepEqual(next.localMapIds, []);
+  const card = questCard(next);
+  card.name = 'edited';
+  assert.equal(questCard(next).name, 'Save the Kid');
+});
+
+test('missing save initializes but unknown versions and malformed saves throw without data loss', () => {
+  assert.deepEqual(hydrateCampaign(null), createCampaign());
+  assert.deepEqual(hydrateCampaign(undefined), createCampaign());
+  for (const value of [{version: 2, progress: 'keep me'}, {version: 0}, {version: '1'}]) {
+    const before = JSON.stringify(value);
+    assert.throws(() => hydrateCampaign(value), error => error.code === 'ACT1_UNSUPPORTED_VERSION');
+    assert.throws(() => applyEvent(value, {type: E.QUEST_ACCEPTED}), error => error.code === 'ACT1_UNSUPPORTED_VERSION');
+    assert.equal(JSON.stringify(value), before);
+  }
+  const malformed = [[], 'saved', {}, {version: 1}, {...prepared(), inventory: {punch: {quantity: -1, level: 1}}},
+    {...prepared(), localMapIds: ['village', 'village']}, {...prepared(), stage: 'dilemma'}];
+  for (const value of malformed) {
+    assert.throws(() => hydrateCampaign(value), error => error.code === 'ACT1_INVALID_SAVE');
+  }
+});
+
+test('JSON round trip preserves all intermediate stages and one-time claims', () => {
+  let state = createCampaign();
+  for (const type of [E.QUEST_DECLINED, E.HOME_GEAR_COLLECTED, E.QUEST_ACCEPTED, E.VILLAGE_INFORMATION,
+    E.ROAD_THIEF_DEFEATED, E.CAVE_REVEALED, E.CAVE_DEFEATED, E.BLOCK_CHEST_CLAIMED,
+    E.THROW_CHEST_CLAIMED, E.NORTHERN_PASSAGE_REACHED, E.AIR_MONSTER_DEFEATED, E.DILEMMA_PRESENTED]) {
+    state = event(state, type);
+    assert.deepEqual(hydrateCampaign(JSON.parse(JSON.stringify(state))), state);
+    assert.deepEqual(event(state, type), state);
+  }
+});
+
+test('browser UMD global exposes the same campaign API without CommonJS', () => {
+  const context = vm.createContext({});
+  vm.runInContext(fs.readFileSync(modulePath, 'utf8'), context);
+  assert.equal(typeof context.Act1State.applyEvent, 'function');
+  assert.deepEqual(JSON.parse(JSON.stringify(context.Act1State.createCampaign())), createCampaign());
+});

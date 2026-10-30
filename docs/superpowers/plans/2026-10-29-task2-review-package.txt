@@ -1,0 +1,271 @@
+diff --git "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\index.html" "b/prototype\\index.html"
+index 0e2815e..f1016d9 100644
+--- "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\index.html"
++++ "b/prototype\\index.html"
+@@ -80,5 +80,7 @@
+   <script src="pixel-sprites.js"></script>
+   <script src="map-effects.js"></script>
+   <script src="map-combat.js"></script>
++  <script src="act1-state.js"></script>
++  <script src="act1.js"></script>
+   <script>bootGame();initializeAccessGate();</script>
+ </body></html>
+diff --git "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\bundle.cjs" "b/prototype\\bundle.cjs"
+index 3f463f4..276660a 100644
+--- "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\bundle.cjs"
++++ "b/prototype\\bundle.cjs"
+@@ -2,7 +2,7 @@ const fs=require('node:fs');
+ const path=require('node:path');
+ let html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+ html=html.replace('<link rel="stylesheet" href="style.css">',()=>'<style>'+fs.readFileSync(path.join(__dirname,'style.css'),'utf8')+'</style>');
+-for(const file of ['access.js','world-life.js','encounters.js','game.js','combat-engine.js','combat-scene.js','guided-scene.js','combat.js','pixel-sprites.js','map-effects.js','map-combat.js'])html=html.replace(`<script src="${file}"></script>`,()=>'<script>'+fs.readFileSync(path.join(__dirname,file),'utf8')+'</script>');
++for(const file of ['access.js','world-life.js','encounters.js','game.js','combat-engine.js','combat-scene.js','guided-scene.js','combat.js','pixel-sprites.js','map-effects.js','map-combat.js','act1-state.js','act1.js'])html=html.replace(`<script src="${file}"></script>`,()=>'<script>'+fs.readFileSync(path.join(__dirname,file),'utf8')+'</script>');
+ html=html.replace('<link rel="stylesheet" href="combat.css">',()=>'<style>'+fs.readFileSync(path.join(__dirname,'combat.css'),'utf8')+'</style>');
+ html=html.replace('<link rel="stylesheet" href="combat-polish.css">',()=>'<style>'+fs.readFileSync(path.join(__dirname,'combat-polish.css'),'utf8')+'</style>');
+ html=html.replace('<link rel="stylesheet" href="guided.css">',()=>'<style>'+fs.readFileSync(path.join(__dirname,'guided.css'),'utf8')+'</style>');
+diff --git "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\build-pages.cjs" "b/prototype\\build-pages.cjs"
+index 3882336..30d1881 100644
+--- "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\build-pages.cjs"
++++ "b/prototype\\build-pages.cjs"
+@@ -3,7 +3,7 @@ const path=require('node:path');
+ const output=path.join(__dirname,'dist');
+ fs.mkdirSync(output,{recursive:true});
+ // An explicit allowlist keeps local screenshots, saves, and development tools out.
+-for(const name of ['index.html','style.css','combat.css','combat-polish.css','guided.css','map-combat.css','access.js','world-life.js','encounters.js','game.js','combat-engine.js','combat-scene.js','guided-scene.js','combat.js','pixel-sprites.js','map-effects.js','map-combat.js'])fs.copyFileSync(path.join(__dirname,name),path.join(output,name));
++for(const name of ['index.html','style.css','combat.css','combat-polish.css','guided.css','map-combat.css','access.js','world-life.js','encounters.js','game.js','combat-engine.js','combat-scene.js','guided-scene.js','combat.js','pixel-sprites.js','map-effects.js','map-combat.js','act1-state.js','act1.js'])fs.copyFileSync(path.join(__dirname,name),path.join(output,name));
+ fs.mkdirSync(path.join(output,'assets/guided'),{recursive:true});for(const name of ['adventurer.png','boar.png','clearing.png'])fs.copyFileSync(path.join(__dirname,'assets/guided',name),path.join(output,'assets/guided',name));
+ fs.writeFileSync(path.join(output,'.nojekyll'),'');
+-console.log('GitHub Pages build ready in prototype/dist (17 game files and 3 art assets, no runtime dependencies).');
++console.log('GitHub Pages build ready in prototype/dist (19 game files and 3 art assets, no runtime dependencies).');
+diff --git "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\README.md" "b/prototype\\README.md"
+index d8275ff..0c474fd 100644
+--- "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\README.md"
++++ "b/prototype\\README.md"
+@@ -22,6 +22,20 @@ Scope: browser-local single player, a fixed home village within generated terrai
+ 
+ Run `node smoke-check.cjs` for world and gameplay checks. Run `node bundle.cjs` after changes to rebuild the standalone `MyWorld.html` file.
+ 
++## Act 1 village prologue preview
++
++While playing, open **Quests → Start prologue preview** to opt in within your current journey. This preserves your character, gold, legacy inventory and world progress. The preview uses its own saved `state.act1` inventory; the existing battle tray still uses legacy cards and rules.
++
++Walk to Mara near the fields (37, 37), Ivo (43, 38), or Tessa (44, 46), and press **E** or the touch interact button. Choose **Normal topic** for ordinary conversation or **Quest topic** for preview actions. Mara offers **I will help** or **Not yet**; declining lets you return later, including after reloading. Acceptance creates one **Save the Kid** Quest Card. Tessa's **Ask about preparations** records village information. At **Your Home** (40, 42), interact and choose **Collect Pickaxe and Shield** once; collection before acceptance counts. Rest remains available.
++
++Ivo offers **Take local Map Card** once. **View village map** then opens a dedicated village landmark map, also available through Quests. It covers only the home village (x 29–51, y 31–53), and changes neither explored tiles nor atlas fog. **Bustagam** shows a separate preview inventory with quantities and levels; the journal and Quest Card show the next objective. No Quest Card exists before acceptance.
++
++Preview progress survives reloads, landscape generation and practice restoration. Intentionally creating a new character replaces the journey and clears its preview. Unreadable or unsupported campaign data is retained, shown in Quests/Bustagam, and cannot be overwritten by preview actions. Browser storage failures retain only session progress, as in the existing prototype.
++
++This milestone stops at the village prologue. Road/cave/northern story encounters, final Act 1 combat, campaign food/ammo and animal choices, expanded regions, puzzles and editor publication remain future work. Legacy victories do not advance the preview, and the journal has no story-progress shortcuts.
++
++Run `node act1-check.cjs` for headless startup and UI-action integration checks and `node --test act1-state.test.cjs` for the pure campaign model. These checks do not establish visual or phone-layout verification.
++
+ The optional Google Fonts request improves typography; local serif and sans-serif fallbacks work offline. The game itself requires no packages or external assets.
+ 
+ ## Opponents and touch controls
+@@ -32,7 +46,7 @@ Phone and tablet layouts include 44–48px direction controls, an interact butto
+ 
+ ## GitHub Pages
+ 
+-The `prototype` directory is ready to become the repository root. `node build-pages.cjs` prepares only the five runtime game files in `dist/`. `.github/workflows/pages.yml` runs checks and deploys `dist/` when manually started. Select GitHub Actions as the repository Pages source. The publishing repository is https://github.com/ani-poroorkara/GameWorld.
++The `prototype` directory is ready to become the repository root. `node build-pages.cjs` prepares only the allowlisted runtime files and art assets in `dist/`. `.github/workflows/pages.yml` runs checks and deploys `dist/` when manually started. Select GitHub Actions as the repository Pages source. The publishing repository is https://github.com/ani-poroorkara/GameWorld.
+ 
+ ## Private playtest prompt
+ 
+diff --git "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\game.js" "b/prototype\\game.js"
+index a1925ed..b935242 100644
+--- "a/C:\\Users\\aniru\\AppData\\Local\\Temp\\myworld-act1-review-20261029\\game.js"
++++ "b/prototype\\game.js"
+@@ -16,7 +16,7 @@ function noise(x,y,s){let h=Math.imul(x,374761393)+Math.imul(y,668265263)+s;h=Ma
+ function smooth(x,y,scale,s){let a=Math.floor(x/scale),b=Math.floor(y/scale),u=x/scale-a,v=y/scale-b;u=u*u*(3-2*u);v=v*v*(3-2*v);return (noise(a,b,s)*(1-u)+noise(a+1,b,s)*u)*(1-v)+(noise(a,b+1,s)*(1-u)+noise(a+1,b+1,s)*u)*v}
+ const idx=(x,y)=>y*CFG.size+x, distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+ function generate(seed,climate,saved){
+- const previousCharacter=state?.character,previousPet=state?.pet,previousHasCharacter=state?.hasCharacter;
++ const previousCharacter=state?.character,previousPet=state?.pet,previousHasCharacter=state?.hasCharacter,previousAct1=state?.act1,hadAct1=!!state&&Object.prototype.hasOwnProperty.call(state,'act1');
+  random=rng(hash(seed));palette=PALETTES[climate];tiles=[];landmarks=[];atlas=false;clickTarget=null;combat=null;
+  const s=hash(seed);for(let y=0;y<CFG.size;y++)for(let x=0;x<CFG.size;x++){let elevation=smooth(x,y,14,s)*.65+smooth(x,y,6,s+19)*.35;const edge=Math.min(x,y,CFG.size-1-x,CFG.size-1-y);if(edge<4)elevation-=.3*(1-edge/4);let n=noise(x,y,s+37);tiles.push({type:elevation<.31?'water':elevation<.36?'sand':elevation>.76?'mountain':n>.62?'tree':'grass',v:Math.floor(n*4)});}
+  const points=[{id:'home',name:'Your Home · Hearthstead',kind:'safe',x:40,y:42,desc:'A little warmth at the edge of the unknown.'},{id:'town',name:'Miller’s Cross',kind:'town',x:19,y:29,desc:'A quiet settlement. A merchant tends the last open stall.'},{id:'ruin1',name:'The Moss Chapel',kind:'ruin',x:55,y:25,relic:'The Verdant Sigil',desc:'Roots embrace a chapel older than the forest. A sentinel guards its altar.'},{id:'ruin2',name:'The Sunken Archive',kind:'ruin',x:20,y:49,relic:'The Tideglass',desc:'Beneath broken stone, the old archive keeps one final secret.'},{id:'ruin3',name:'Emberwatch Tower',kind:'ruin',x:58,y:59,relic:'The Ember Heart',desc:'A forgotten watchtower. A quiet ember still burns at its crown.'},{id:'rift',name:'The Sleeping Gate',kind:'rift',x:42,y:20,desc:'A tear between worlds, waiting for three lost relics.'},{id:'camp',name:'Wayfarer’s Camp',kind:'camp',x:36,y:56,desc:'A campfire and an empty bedroll. Rest awhile.'}];
+@@ -25,7 +25,7 @@ function generate(seed,climate,saved){
+  for(let i=1;i<points.length;i++){const p=points[i],a=points[i===5?1:0];let x=a.x,y=a.y;while(x!==p.x||y!==p.y){if(x!==p.x&&(random()>.45||y===p.y))x+=Math.sign(p.x-x);else y+=Math.sign(p.y-y);tiles[idx(x,y)]={type:'path',v:0};}}
+  buildVillage();
+  state=saved||{seed,climate,x:40,y:44,hp:CFG.maxHP,mana:20,xp:0,relics:[],cleared:[],seen:[],steps:0,won:false,vaults:1};
+- if(!saved&&previousCharacter){state.character=JSON.parse(JSON.stringify(previousCharacter));state.hasCharacter=previousHasCharacter;state.pet=previousPet?{...previousPet}:null}hydrateLife();buildEnemies();state.seen=new Set(state.seen);resetMotion();$('worldName').textContent=palette.title;keys.clear();reveal();updateUI();save();notify(saved?'Your journey continues.':'Welcome to Hearthstead. Your entire village is safe.');
++ if(!saved&&previousCharacter){state.character=JSON.parse(JSON.stringify(previousCharacter));state.hasCharacter=previousHasCharacter;state.pet=previousPet?{...previousPet}:null}if(!saved&&hadAct1)state.act1=previousAct1===undefined?undefined:JSON.parse(JSON.stringify(previousAct1));hydrateLife();buildEnemies();state.seen=new Set(state.seen);resetMotion();$('worldName').textContent=palette.title;keys.clear();reveal();updateUI();save();notify(saved?'Your journey continues.':'Welcome to Hearthstead. Your entire village is safe.');
+ }
+ function reveal(){for(let dy=-CFG.vision;dy<=CFG.vision;dy++)for(let dx=-CFG.vision;dx<=CFG.vision;dx++){let x=state.x+dx,y=state.y+dy;if(x>=0&&y>=0&&x<CFG.size&&y<CFG.size&&dx*dx+dy*dy<CFG.vision**2)state.seen.add(idx(x,y))}}
+ function save(){if(combat?.onMap&&combat.practice)return;try{localStorage.setItem(CFG.saveKey,JSON.stringify({...state,seen:[...state.seen]}));lastSave=Date.now()}catch{notify('Browser storage unavailable — progress lasts for this session only.')}}
+NEW FILE: prototype/act1.js
+'use strict';
+// Opt-in village preview. Legacy inventory and combat continue to use their existing rules.
+const ACT1_MAP_ID='home-village';
+const ACT1_NAMES={punch:'Punch','hand-block':'Hand Block',pickaxe:'Pickaxe',shield:'Shield','stone-staff':'Stone Staff','stone-throw':'Stone Throw','stone-block':'Stone Block',bow:'Bow',arrows:'Arrows',apple:'Apple',steak:'Steak','pet-distraction':'Pet Distraction',map:'Local Map Card','save-the-kid':'Save the Kid'};
+function act1Campaign(){
+ if(!Object.prototype.hasOwnProperty.call(state,'act1'))return null;
+ if(state.act1===null||state.act1===undefined)return null;
+ try{return Act1State.hydrateCampaign(state.act1)}catch{return null}
+}
+function act1Unreadable(){return Object.prototype.hasOwnProperty.call(state,'act1')&&!act1Campaign()}
+function act1InstallResidents(){
+ if(!act1Campaign())return;
+ for(const resident of [
+  {id:'act1-ivo',name:'Ivo the map-giver',x:43,y:38,color:'#bfa46e',text:'A map shows landmarks. Walking a place is a different kind of knowing.'},
+  {id:'act1-tessa',name:'Tessa the card guide',x:44,y:46,color:'#a19ab8',text:'Keep your cards in your Bustagam. Quantity and level describe different things.'}
+ ])if(!villagers.some(v=>v.id===resident.id))villagers.push(resident);
+}
+function act1StartPreview(){
+ // Presence, including a null/unsupported payload, prevents accidental replacement.
+ if(Object.prototype.hasOwnProperty.call(state,'act1')||combat)return;
+ state.act1=Act1State.createCampaign();act1InstallResidents();save();showQuests();
+}
+function act1AtHome(){const home=landmarks.find(p=>p.id==='home');return home&&distance(state,home)<=2}
+function act1Event(type){
+ const campaign=act1Campaign();if(!campaign||combat)return false;
+ // Only prologue events can enter through this adapter. Real encounters are a later milestone.
+ const E=Act1State.EVENTS;
+ if(![E.QUEST_ACCEPTED,E.QUEST_DECLINED,E.VILLAGE_INFORMATION,E.HOME_GEAR_COLLECTED,E.LOCAL_MAP_COLLECTED].includes(type))return false;
+ if(type===E.HOME_GEAR_COLLECTED&&!act1AtHome())return false;
+ state.act1=Act1State.applyEvent(campaign,{type,...(type===E.LOCAL_MAP_COLLECTED?{mapId:ACT1_MAP_ID}:{})});save();return true;
+}
+function act1JournalHTML(){
+ if(act1Unreadable())return '<section><h2>Act 1 prologue preview</h2><p>This campaign save cannot be read by this version. Its original data is retained; preview changes are disabled.</p></section>';
+ const c=act1Campaign();
+ if(!c)return '<section><h2>Act 1 prologue preview</h2><p>Try the village conversations, home equipment and local map in your current world. The existing battles and battle cards still use legacy rules.</p>'+actionButton('Start prologue preview','act1Start')+'</section>';
+ const q=Act1State.questCard(c);
+ return `<section><h2>Act 1 prologue preview</h2><p>Village conversations, home equipment and a local map are available. Main story encounters and final Act 1 combat are not available in this preview.</p>${q?`<div class="play-card"><strong>${escapeText(q.name)}</strong><small>Quantity ${q.quantity} · Level ${q.level}</small><p>${escapeText(q.nextObjective)}</p></div>`:`<p>${c.status==='declined'?'You said “Not yet.” You can revisit Mara when ready.':'Talk to Mara about her request. Accepting creates the Save the Kid Quest Card.'}</p>`}<p>Find Mara near the fields (37, 37), Ivo at (43, 38) and Tessa at (44, 46). Equipment is at Your Home (40, 42). Choose Normal topic or Quest topic when speaking.</p>${c.localMapIds.includes(ACT1_MAP_ID)?actionButton('View village map','act1Map'):''}</section>`;
+}
+const act1LegacyQuests=showQuests;
+showQuests=function(){
+ act1LegacyQuests();$('modalContent').insertAdjacentHTML('beforeend',act1JournalHTML());
+ if(!Object.prototype.hasOwnProperty.call(state,'act1'))$('act1Start').onclick=act1StartPreview;
+ if(act1Campaign()?.localMapIds.includes(ACT1_MAP_ID))$('act1Map').onclick=act1ShowMap;
+};
+function act1MapKnows(x,y){return !!act1Campaign()?.localMapIds.includes(ACT1_MAP_ID)&&insideVillage(x,y)}
+function act1ShowMap(){
+ if(!act1Campaign()?.localMapIds.includes(ACT1_MAP_ID)||combat)return;
+ // Dedicated settlement view: no atlas/fog/seen mutation and no outside terrain lookup.
+ const places=landmarks.filter(p=>insideVillage(p.x,p.y));
+ showModal(`<div class="eyebrow">VILLAGE MAP · PROLOGUE PREVIEW</div><h2>Your local Map Card</h2><p>Only the home village: x ${homeBounds.left}–${homeBounds.right}, y ${homeBounds.top}–${homeBounds.bottom}. Map knowledge does not count as exploration.</p><div role="img" aria-label="Village landmark map"><svg viewBox="0 0 460 460" style="width:100%;max-width:460px;background:#243f30" aria-hidden="true">${places.map(p=>{const x=(p.x-homeBounds.left+.5)*20,y=(p.y-homeBounds.top+.5)*20;return `<circle cx="${x}" cy="${y}" r="5" fill="#e8d49a"/><text x="${x+7}" y="${y}" fill="#fff" font-size="9">${escapeText(p.name)}</text>`}).join('')}</svg></div><ul>${places.map(p=>`<li>${escapeText(p.name)}: (${p.x}, ${p.y})</li>`).join('')}</ul><p>Beyond these bounds, use the explored atlas and your own travels.</p>`);
+}
+function act1Conversation(entity,topic='menu'){
+ if(!act1Campaign())return;
+ const menu=[{label:'Normal topic',run:()=>act1Conversation(entity,'normal')},{label:'Quest topic',run:()=>act1Conversation(entity,'quest')}];
+ if(topic==='menu'){showSpeech(entity,'What would you like to talk about?',menu);return}
+ if(topic==='normal'){showSpeech(entity,entity.text,menu);return}
+ const c=act1Campaign(),E=Act1State.EVENTS;
+ if(entity.id==='mara'){
+  if(c.flags.accepted){showSpeech(entity,'Thank you for helping. Ask around the village and collect the equipment at your home. The road lead continues in a later preview update.',menu);return}
+  showSpeech(entity,`${c.flags.declined?'You came back. ':''}My child is missing. Will you help me look? You remember your own lost son; his fate remains unknown.`,[
+   {label:'I will help',run:()=>{if(act1Event(E.QUEST_ACCEPTED))act1Conversation(entity,'quest')}},
+   {label:'Not yet',run:()=>{if(act1Event(E.QUEST_DECLINED))showSpeech(entity,'I understand. Come back when you are ready.',menu)}}]);return;
+ }
+ if(entity.id==='act1-ivo'){
+  const owned=c.localMapIds.includes(ACT1_MAP_ID);
+  showSpeech(entity,'This Map Card covers only our village. It does not explore the wider world for you.',[
+   ...(owned?[{label:'View village map',run:act1ShowMap}]:[{label:'Take local Map Card',run:()=>{if(act1Event(E.LOCAL_MAP_COLLECTED))act1Conversation(entity,'quest')}}]),...menu]);return;
+ }
+ showSpeech(entity,'Your preview starts with Punch and Hand Block. Collect Pickaxe and Shield at your home. Quantity counts copies; level is separate. Legacy battles keep their current cards for now.',[
+  {label:'Ask about preparations',run:()=>{if(act1Event(E.VILLAGE_INFORMATION))showSpeech(entity,'The village information is recorded. Collect your home equipment if you have not already. Main story encounters are not yet connected.',menu)}},...menu]);
+}
+const act1LegacyInteractLife=interactLife;
+interactLife=function(){
+ if(act1Campaign()){
+  const entity=nearestLifeEntity();
+  if(entity&&['mara','act1-ivo','act1-tessa'].includes(entity.id)){act1Conversation(entity);return true}
+ }
+ return act1LegacyInteractLife();
+};
+// Let the original home interaction render and bind Rest before appending equipment.
+const act1LegacyInteract=interact;
+interact=function(){
+ const eligible=lifeMode==='play'&&!combat&&!$('modal').open&&!nearestLifeEntity()&&near?.id==='home'&&act1AtHome();
+ act1LegacyInteract();
+ const c=act1Campaign();if(!eligible||!c||!$('modal').open)return;
+ $('modalContent').insertAdjacentHTML('beforeend',`<section><h3>Prologue equipment</h3>${c.flags.homeGear?'<p>Pickaxe and Shield already collected.</p>':actionButton('Collect Pickaxe and Shield','act1Gear')}</section>`);
+ if(!c.flags.homeGear)$('act1Gear').onclick=()=>{if(!act1Event(Act1State.EVENTS.HOME_GEAR_COLLECTED))return;closeModal();notify('Pickaxe and Shield added to your prologue inventory.');showBinder()};
+};
+// game.js eagerly bound these functions before this adapter loaded.
+$('touchInteract').onclick=()=>interact();
+const act1LegacyBinder=showBinder;
+showBinder=function(){
+ act1LegacyBinder();const c=act1Campaign();
+ if(!c){if(act1Unreadable())$('modalContent').insertAdjacentHTML('beforeend',act1JournalHTML());return}
+ const q=Act1State.questCard(c);
+ $('modalContent').insertAdjacentHTML('beforeend',`<section><h2>Prologue preview inventory</h2><p>Separate from the legacy battle tray. Quantity counts copies; level has no upgrade mechanic in this preview.</p><div class="card-grid">${Object.entries(c.inventory).map(([id,item])=>`<div class="play-card"><strong>${escapeText(ACT1_NAMES[id]||id)}</strong><small>Quantity ${item.quantity} · Level ${item.level}</small>${id===Act1State.CARDS.QUEST&&q?`<p>${escapeText(q.nextObjective)}</p>`:''}</div>`).join('')}</div></section>`);
+};
+$('binder').onclick=()=>showBinder();
+const act1LegacyHydrateLife=hydrateLife;
+hydrateLife=function(){act1LegacyHydrateLife();act1InstallResidents()};
+const act1LegacyStartJourney=startJourney;
+startJourney=function(){
+ // A new character explicitly replaces this journey; changing landscapes does not.
+ if(validCharacter({...draft,name:draft.name.trim()}))delete state.act1;
+ act1LegacyStartJourney();
+};
+// Initial generation already happened in game.js; later generations use the hydration seam.
+act1InstallResidents();
+
+NEW FILE: prototype/act1-check.cjs
+// Actual index startup order, rendered speech buttons, and browser-local save integration.
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const html=fs.readFileSync(__dirname+'/index.html','utf8');
+function launch(initial){
+ const elements=new Map(),storage=new Map(initial||[]);
+ const paint=new Proxy({measureText:s=>({width:s.length*6}),createRadialGradient:()=>({addColorStop(){}})},{get:(o,k)=>k in o?o[k]:()=>{}});
+ function element(id){
+  if(elements.has(id))return elements.get(id);
+  const e={value:'',style:{setProperty(){}},dataset:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},getContext:()=>paint,getBoundingClientRect:()=>({width:1000,height:520,left:0,top:0}),addEventListener(){},focus(){},showModal(){this.open=true},close(){this.open=false},open:false,children:[],querySelector(selector){return this.children.find(c=>selector==='.close'&&c.className==='close')||element(id+'child')},querySelectorAll(selector){return selector==='[data-speech-action]'?this.children.filter(c=>c.dataset.speechAction!==undefined):[]}};
+  let markup='';Object.defineProperty(e,'innerHTML',{get:()=>markup,set(value){markup=value;e.children=[];for(const match of value.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)){const attrs=match[1],key=/\bid="([^"]+)"/.exec(attrs)?.[1],b=key?element(key):{dataset:{}};b.label=match[2].replace(/<[^>]*>/g,'');b.className=/class="([^"]+)"/.exec(attrs)?.[1];const action=/data-speech-action="([^"]+)"/.exec(attrs);if(action)b.dataset.speechAction=action[1];b.disabled=/\bdisabled\b/.test(attrs);b.onclick=null;e.children.push(b)}}});elements.set(id,e);return e;
+ }
+ function enhance(id){const e=element(id);e.insertAdjacentHTML=(position,value)=>{assert.equal(position,'beforeend');const temp=element(id+'append'+e.children.length);temp.innerHTML=value;const previous=e.children.map(button=>({button,onclick:button.onclick}));const old=e.innerHTML;e.innerHTML=old+value;for(const {button,onclick} of previous)button.onclick=onclick;e.children=[...previous.map(p=>p.button),...temp.children]};return e}
+ const context=vm.createContext({console,Set,Map,Math,Date,JSON,Number,TextEncoder,sessionStorage:{getItem:()=>null,setItem(){}},document:{body:element('body'),documentElement:{style:{setProperty(){}}},getElementById:enhance,querySelectorAll:()=>[],addEventListener(){}},window:{devicePixelRatio:1,matchMedia:()=>({matches:false}),addEventListener(){}},localStorage:{setItem:(k,v)=>storage.set(k,v),getItem:k=>storage.get(k)||null},performance:{now:()=>1000},setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){}});
+ for(const script of html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>/g))vm.runInContext(script[1]?fs.readFileSync(__dirname+'/'+script[1],'utf8'):script[2],context,{filename:script[1]||'index boot'});
+ const run=code=>vm.runInContext(code,context);
+ const click=(parent,label)=>{const b=element(parent).children.find(b=>b.label===label||b===elements.get(label));assert(b,'Rendered button missing: '+label);assert.equal(typeof b.onclick,'function');assert(!b.disabled);b.onclick()};
+ run("lifeMode='play'");return {run,element,storage,click};
+}
+let app=launch();let {run,element,click}=app;
+assert.equal(run('state.act1'),undefined);
+element('questButton').onclick();assert(element('modalContent').innerHTML.includes('The sleeping gate'));
+click('modalContent','Start prologue preview');
+assert.equal(run('state.act1.inventory.punch.quantity'),1);assert.equal(run('state.act1.inventory[Act1State.CARDS.QUEST]'),undefined);
+assert.equal(run('villagers.filter(v=>v.id==="mara").length'),1);assert(run('villagers.some(v=>v.id==="tess")'));
+const legacy=run('JSON.stringify([state.character,state.gold,state.ownedCards,state.relics,state.food])');
+function talk(id){run(`closeModal();state.x=villagers.find(v=>v.id===${JSON.stringify(id)}).x;state.y=villagers.find(v=>v.id===${JSON.stringify(id)}).y;updateUI();interact()`)}
+talk('mara');click('speechBubble','Quest topic');assert(element('speechBubble').innerHTML.includes('My child'));click('speechBubble','Not yet');
+run('save()');app=launch(app.storage);({run,element,click}=app);
+assert.equal(run('state.act1.status'),'declined');talk('mara');click('speechBubble','Quest topic');click('speechBubble','I will help');
+assert.equal(run('state.act1.inventory[Act1State.CARDS.QUEST].quantity'),1);
+talk('mara');click('speechBubble','Normal topic');assert(element('speechBubble').innerHTML.includes('farm'));
+talk('act1-tessa');click('speechBubble','Quest topic');click('speechBubble','Ask about preparations');
+run('closeModal();state.x=40;state.y=42;updateUI();interact()');click('modalContent','Collect Pickaxe and Shield');
+assert.equal(run('state.act1.flags.homeGear'),true);
+run('interact()');assert(!element('modalContent').innerHTML.includes('id="act1Gear"'));
+const seen=run('JSON.stringify([...state.seen])'),explored=element('explored').textContent;
+talk('act1-ivo');click('speechBubble','Quest topic');click('speechBubble','Take local Map Card');
+const mapSeen=run('JSON.stringify([...state.seen])');click('speechBubble','View village map');
+assert(element('modalContent').innerHTML.includes('VILLAGE MAP'));assert.equal(run('JSON.stringify([...state.seen])'),mapSeen);assert.equal(mapSeen,seen);assert.equal(element('explored').textContent,explored);
+assert.equal(run('act1MapKnows(homeBounds.left-1,homeBounds.top)'),false);assert.equal(run('act1MapKnows(homeBounds.left,homeBounds.top)'),true);
+element('binder').onclick();assert(element('modalContent').innerHTML.includes('Quantity 1'));assert(element('modalContent').innerHTML.includes('Level 1'));assert(element('modalContent').innerHTML.includes('Save the Kid'));
+assert.equal(run('JSON.stringify([state.character,state.gold,state.ownedCards,state.relics,state.food])'),legacy);
+const checkpoint=run('JSON.stringify(state.act1)');run('closeModal();showEncounterWalkthrough();state.act1.inventory.punch.quantity=99;leavePractice()');assert.equal(run('JSON.stringify(state.act1)'),checkpoint);
+run('save()');app=launch(app.storage);({run,element,click}=app);assert.equal(run('JSON.stringify(state.act1)'),checkpoint);
+run('generate("OTHER","woodland")');assert.equal(run('JSON.stringify(state.act1)'),checkpoint);assert.equal(run('villagers.filter(v=>v.id==="act1-ivo").length'),1);
+// Exercise actual rendered home and map controls before acceptance as a separate journey.
+const fresh=launch();fresh.element('questButton').onclick();fresh.click('modalContent','Start prologue preview');fresh.run('closeModal();state.x=40;state.y=42;state.hp=1;updateUI();interact()');
+fresh.click('modalContent','Rest by the fire');assert.equal(fresh.run('state.hp'),60,'Appending equipment keeps original Rest callback');
+fresh.run('interact()');fresh.click('modalContent','Collect Pickaxe and Shield');assert.equal(fresh.run('state.act1.flags.accepted'),false);
+fresh.run('closeModal();state.x=37;state.y=37;updateUI();interact()');fresh.click('speechBubble','Quest topic');fresh.click('speechBubble','I will help');assert.equal(fresh.run('state.act1.flags.homeGear'),true);assert.equal(fresh.run('state.act1.inventory.pickaxe.quantity'),1);
+fresh.run('mainMenu()');fresh.click('opening','singlePlayer');fresh.click('opening','newCharacter');fresh.click('opening','Balanced build');fresh.click('opening','startJourney');assert.equal(fresh.run('state.act1'),undefined,'An intentional new character starts without the old preview');
+// Seed an unknown version before game.js performs its eager generation/save.
+const raw=JSON.parse(app.storage.get(run('CFG.saveKey')));raw.act1={version:99,opaque:{keep:['exactly',42]}};
+app=launch(new Map([[run('CFG.saveKey'),JSON.stringify(raw)]]));({run,element,click}=app);
+const opaque=JSON.stringify(raw.act1);assert.equal(run('JSON.stringify(state.act1)'),opaque);assert.equal(JSON.stringify(JSON.parse(app.storage.get(run('CFG.saveKey'))).act1),opaque);
+element('questButton').onclick();assert(element('modalContent').innerHTML.includes('cannot be read'));assert(!element('modalContent').innerHTML.includes('id="act1Start"'));
+run('act1StartPreview();act1Event(Act1State.EVENTS.QUEST_ACCEPTED);save()');assert.equal(run('JSON.stringify(state.act1)'),opaque);
+for(const payload of [null,{version:1,broken:true}]){
+ raw.act1=payload;const invalid=launch(new Map([[run('CFG.saveKey'),JSON.stringify(raw)]]));invalid.element('questButton').onclick();
+ assert(invalid.element('modalContent').innerHTML.includes('cannot be read'),'Present invalid campaign must be retained and disabled');
+ invalid.run('act1StartPreview();act1Event(Act1State.EVENTS.QUEST_ACCEPTED);save()');assert.equal(invalid.run('JSON.stringify(state.act1)'),JSON.stringify(payload));
+}
+run('state.act1=undefined;generate("UNDEFINED","woodland")');assert.equal(run('act1Unreadable()'),true);
+console.log('PASS: actual startup, opt-in, rendered dialogue, reacceptance, gear/map, binder, legacy preservation, reload, practice and unreadable saves. Headless only.');
+
