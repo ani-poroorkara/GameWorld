@@ -1,6 +1,6 @@
 'use strict';
 // A casual playtest prompt, not server-side access protection.
-const ACCESS_CODE_HASH='d2cb2a3551377b86b707d5f3c46cb669c9040f10869a2f28259be48da27abfca';
+const ACCESS_CODE_HASH='ac8c54510e8be7219de00ae71cc560a7272e9ba4f2559b890e08411e41fb9e2d';
 const ACCESS_SESSION_KEY='myworld-playtest-'+ACCESS_CODE_HASH.slice(0,12);
 async function accessCodeMatches(value,expected=ACCESS_CODE_HASH){
  const normalized=value.trim().toUpperCase();

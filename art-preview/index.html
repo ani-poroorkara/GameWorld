@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hearthstead · Style B art preview</title>
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+  <header class="site-header"><a class="wordmark" href="../">✦ MYWORLD</a><span>THE ART WORKSHOP</span><a class="back" href="../">Back to the game ↗</a></header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">STYLE B / RICH DETAIL</p><h1>A little corner of Hearthstead.</h1><p class="lead">Real sprites. A small world to walk through. A first look at the new art.</p></div><span class="preview-tag"><i></i> Separate preview</span></div>
+    <section class="scene-frame" aria-label="Playable art preview">
+      <div class="scene-toolbar"><div><span class="live-dot"></span><b>Hearthstead</b><span class="toolbar-note">A quiet afternoon</span></div><div class="view-controls"><label for="zoom">View</label><select id="zoom"><option value="1">Scene view</option><option value="1.5">Closer · 1.5×</option><option value="2">Detail · 2×</option></select><button id="reset" type="button">Reset</button></div></div>
+      <div class="canvas-wrap" id="canvasWrap"><canvas id="scene" width="960" height="640" tabindex="0" aria-label="Walkable village art preview. Use arrow keys or WASD to move, or click the ground."></canvas><div class="loading" id="loading" role="status">Preparing your little corner of the world…</div><div class="scene-caption" id="caption">Click the ground to explore</div><button class="pet-button" id="pet" type="button">♡ Pet your companion <kbd>E</kbd></button><div class="touch-pad" aria-label="Movement controls"><button data-direction="up" aria-label="Walk up">↑</button><button data-direction="left" aria-label="Walk left">←</button><button data-direction="down" aria-label="Walk down">↓</button><button data-direction="right" aria-label="Walk right">→</button></div></div>
+      <div class="scene-footer"><span><kbd>W A S D</kbd> or <kbd>↑ ↓ ← →</kbd> to walk <span class="separator">·</span> Click or tap a destination</span><span id="status" role="status">Your companion will follow you.</span></div>
+    </section>
+    <section class="asset-section" aria-labelledby="assetHeading"><div class="section-heading"><div><p class="eyebrow">LOOK A LITTLE CLOSER</p><h2 id="assetHeading">The artwork, as it appears in code.</h2></div><p>The scene above uses these exact images.<br>Choose a view to inspect the character sprites.</p></div><div class="asset-grid"><article class="asset-card"><div class="asset-art"><canvas id="traveler-study" width="260" height="230" aria-label="Traveler sprite detail"></canvas></div><div class="asset-label"><div><h3>The traveler</h3><p>Layered hair, cloth & leather</p></div><select id="direction" aria-label="Character viewing direction"><option value="0">Front</option><option value="1">Left</option><option value="2">Right</option><option value="3">Back</option></select></div></article><article class="asset-card"><div class="asset-art"><canvas id="dog-study" width="260" height="230" aria-label="Companion dog sprite detail"></canvas></div><div class="asset-label"><div><h3>A faithful friend</h3><p>Golden fur & a little collar</p></div><span class="asset-number">02</span></div></article><article class="asset-card"><div class="asset-art"><canvas id="cottage-study" width="260" height="230" aria-label="Cottage sprite detail"></canvas></div><div class="asset-label"><div><h3>A place to come home</h3><p>Warm timber, tile & stone</p></div><span class="asset-number">03</span></div></article><article class="asset-card"><div class="asset-art"><canvas id="oak-study" width="260" height="230" aria-label="Oak tree sprite detail"></canvas></div><div class="asset-label"><div><h3>The old oak</h3><p>Leaf clusters & winding roots</p></div><span class="asset-number">04</span></div></article></div></section>
+    <footer class="page-footer"><p>This is a small art and movement study. Your main game and saved journey are separate.</p><a href="ASSETS.md">Asset notes & generation prompts ↗</a></footer>
+  </main>
+  <script src="preview.js"></script>
+</body>
+</html>

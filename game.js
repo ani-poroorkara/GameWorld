@@ -1,13 +1,17 @@
 'use strict';
 // Throwaway prototype. Balance and world-generation values are collected here.
-const CFG={size:80,tile:32,vision:7,maxHP:60,moveDelay:110,enemyHP:30,enemyDamage:7,dice:3,relicXP:35,combatXP:15,levelXP:50,saveKey:'myworld-wilderlands-v1'};
+const CFG={size:80,tile:64,vision:7,maxHP:60,moveDelay:110,enemyHP:30,enemyDamage:7,dice:3,relicXP:35,combatXP:15,levelXP:50,saveKey:'myworld-wilderlands-v1'};
 const $=id=>document.getElementById(id), canvas=$('world'),ctx=canvas.getContext('2d');
 const PALETTES={woodland:{grass:['#557644','#597b47','#527242','#5d7e49'],water:'#426b65',deep:'#355b59',sand:'#9a9462',tree:'#254d35',leaves:'#356044',highlight:'#527c4d',mountain:'#737b67',title:'Ashwood Expanse',sky:'#172c23'},autumn:{grass:['#8b824d','#928652','#847e48','#998957'],water:'#426967',deep:'#365657',sand:'#b6a36c',tree:'#60452e',leaves:'#a46e38',highlight:'#c18c48',mountain:'#89806b',title:'The Amber Wilds',sky:'#30291d'},frost:{grass:['#a0b8ac','#abc0b6','#96b0a4','#b0c4b9'],water:'#5b8c99',deep:'#45727f',sand:'#bbccc0',tree:'#385d57',leaves:'#527e70',highlight:'#91ad99',mountain:'#839d99',title:'Frostbound Reach',sky:'#1c3032'}};
 let state,tiles=[],landmarks=[],random,palette,keys=new Set(),lastMove=0,near=null,atlas=false,combat=null,toastTimer,clickTarget=null,audioContext=null,ambientNodes=[],lastSave=0;
-const motion={x:40,y:44,fromX:40,fromY:44,cameraX:40,cameraY:44,started:-Infinity,lastFrame:0,walkUntil:0,facing:1};
+const motion={x:40,y:44,fromX:40,fromY:44,cameraX:40,cameraY:44,started:-Infinity,lastFrame:0,walkUntil:0,facing:1,row:0};
+const petMotion={x:39,y:44,fromX:39,fromY:44,toX:39,toY:44,started:-Infinity,walkUntil:0,row:2,lastId:null};
 const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
 function animationTime(){return (reducedMotion?.matches||preferences.reduceMotion)?0:performance.now()}
-function resetMotion(){Object.assign(motion,{x:state.x,y:state.y,fromX:state.x,fromY:state.y,cameraX:state.x,cameraY:state.y,started:-Infinity,lastFrame:0,walkUntil:0})}
+function resetMotion(){Object.assign(motion,{x:state.x,y:state.y,fromX:state.x,fromY:state.y,cameraX:state.x,cameraY:state.y,started:-Infinity,lastFrame:0,walkUntil:0,row:0});resetPetMotion()}
+function resetPetMotion(){const p=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:state.x+dx,y:state.y+dy})).find(p=>!blockedAt(p.x,p.y))||state;Object.assign(petMotion,{x:p.x,y:p.y,fromX:p.x,fromY:p.y,toX:p.x,toY:p.y,started:-Infinity,walkUntil:0,row:2,lastId:state.pet?.id||null})}
+function samplePetMotion(now){const progress=(reducedMotion?.matches||preferences.reduceMotion)?1:Math.min(1,Math.max(0,(now-petMotion.started)/CFG.moveDelay));petMotion.x=petMotion.fromX+(petMotion.toX-petMotion.fromX)*progress;petMotion.y=petMotion.fromY+(petMotion.toY-petMotion.fromY)*progress}
+function movePetTo(x,y,now){if(!state.pet)return;if(petMotion.lastId!==state.pet.id)resetPetMotion();samplePetMotion(now);const dx=x-petMotion.x,dy=y-petMotion.y;Object.assign(petMotion,{fromX:petMotion.x,fromY:petMotion.y,toX:x,toY:y,started:now,walkUntil:now+CFG.moveDelay,row:Math.abs(dx)>Math.abs(dy)?dx<0?1:2:dy<0?3:0})}
 function sampleMotion(now){const progress=(reducedMotion?.matches||preferences.reduceMotion)?1:Math.min(1,Math.max(0,(now-motion.started)/CFG.moveDelay));motion.x=motion.fromX+(state.x-motion.fromX)*progress;motion.y=motion.fromY+(state.y-motion.fromY)*progress}
 const cards=[{name:'Melee Strike',symbol:'⚔',desc:'10 damage. A dependable permanent card.',type:'attack'},{name:'Iron Guard',symbol:'◈',desc:'Block the next attack and recover 3 HP.',type:'guard'},{name:'Arcane Bolt',symbol:'ϟ',desc:'17 damage. Costs 5 mana.',type:'magic'},{name:'Second Wind',symbol:'❧',desc:'Restore 20 HP. One use per encounter.',type:'heal'}];
 function hash(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
@@ -15,6 +19,11 @@ function rng(seed){return()=>{seed+=0x6D2B79F5;let t=seed;t=Math.imul(t^t>>>15,t
 function noise(x,y,s){let h=Math.imul(x,374761393)+Math.imul(y,668265263)+s;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967295}
 function smooth(x,y,scale,s){let a=Math.floor(x/scale),b=Math.floor(y/scale),u=x/scale-a,v=y/scale-b;u=u*u*(3-2*u);v=v*v*(3-2*v);return (noise(a,b,s)*(1-u)+noise(a+1,b,s)*u)*(1-v)+(noise(a,b+1,s)*(1-u)+noise(a+1,b+1,s)*u)*v}
 const idx=(x,y)=>y*CFG.size+x, distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+function blockedAt(x,y){
+ if(x<1||y<1||x>=CFG.size-1||y>=CFG.size-1||['water','mountain','tree'].includes(tiles[idx(x,y)]?.type))return true;
+ return landmarks.some(p=>['safe','town','shop','house'].includes(p.kind)?Math.abs(x-p.x)<=1&&y>=p.y-1&&y<=p.y:p.kind==='ruin'&&x===p.x&&y===p.y);
+}
+function placeOnOpenGround(){if(!blockedAt(state.x,state.y))return;for(let r=1;r<6;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(Math.abs(dx)+Math.abs(dy)===r&&!blockedAt(state.x+dx,state.y+dy)){state.x+=dx;state.y+=dy;return}}
 function generate(seed,climate,saved){
  const previousCharacter=state?.character,previousPet=state?.pet,previousHasCharacter=state?.hasCharacter;
  random=rng(hash(seed));palette=PALETTES[climate];tiles=[];landmarks=[];atlas=false;clickTarget=null;combat=null;
@@ -25,7 +34,7 @@ function generate(seed,climate,saved){
  for(let i=1;i<points.length;i++){const p=points[i],a=points[i===5?1:0];let x=a.x,y=a.y;while(x!==p.x||y!==p.y){if(x!==p.x&&(random()>.45||y===p.y))x+=Math.sign(p.x-x);else y+=Math.sign(p.y-y);tiles[idx(x,y)]={type:'path',v:0};}}
  buildVillage();
  state=saved||{seed,climate,x:40,y:44,hp:CFG.maxHP,mana:20,xp:0,relics:[],cleared:[],seen:[],steps:0,won:false,vaults:1};
- if(!saved&&previousCharacter){state.character=JSON.parse(JSON.stringify(previousCharacter));state.hasCharacter=previousHasCharacter;state.pet=previousPet?{...previousPet}:null}hydrateLife();buildEnemies();state.seen=new Set(state.seen);resetMotion();$('worldName').textContent=palette.title;keys.clear();reveal();updateUI();save();notify(saved?'Your journey continues.':'Welcome to Hearthstead. Your entire village is safe.');
+ if(!saved&&previousCharacter){state.character=JSON.parse(JSON.stringify(previousCharacter));state.hasCharacter=previousHasCharacter;state.pet=previousPet?{...previousPet}:null}hydrateLife();placeOnOpenGround();buildEnemies();state.seen=new Set(state.seen);resetMotion();$('worldName').textContent=palette.title;keys.clear();reveal();updateUI();save();notify(saved?'Your journey continues.':'Welcome to Hearthstead. Your entire village is safe.');
 }
 function reveal(){for(let dy=-CFG.vision;dy<=CFG.vision;dy++)for(let dx=-CFG.vision;dx<=CFG.vision;dx++){let x=state.x+dx,y=state.y+dy;if(x>=0&&y>=0&&x<CFG.size&&y<CFG.size&&dx*dx+dy*dy<CFG.vision**2)state.seen.add(idx(x,y))}}
 function save(){try{localStorage.setItem(CFG.saveKey,JSON.stringify({...state,seen:[...state.seen]}));lastSave=Date.now()}catch{notify('Browser storage unavailable — progress lasts for this session only.')}}
@@ -34,7 +43,7 @@ function updateUI(){
  near=landmarks.find(p=>distance(state,p)<=2)||null;$('locationName').textContent=near?near.name:tiles[idx(state.x,state.y)].type==='path'?'The Old Road':'Uncharted Wilds';$('prompt').hidden=!near;$('prompt').querySelector('span').textContent=near?(near.kind==='safe'?'Rest at ':near.kind==='ruin'?'Explore ':'Visit ')+near.name:'';lifeUI();
 }
 function notify(text){$('toast').textContent=text;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),3500)}
-function move(dx,dy){if(lifeMode!=='play'||$('modal').open||atlas)return false;let x=state.x+dx,y=state.y+dy;if(x<1||y<1||x>=CFG.size-1||y>=CFG.size-1)return false;let t=tiles[idx(x,y)].type;if(t==='water'||t==='mountain'||t==='tree')return false;const now=performance.now();sampleMotion(now);motion.fromX=motion.x;motion.fromY=motion.y;motion.started=now;motion.walkUntil=now+CFG.moveDelay;if(dx)motion.facing=dx;state.x=x;state.y=y;state.steps++;reveal();updateUI();if(Date.now()-lastSave>2000)save();afterTravel();return true}
+function move(dx,dy){if(lifeMode!=='play'||$('modal').open||atlas)return false;let x=state.x+dx,y=state.y+dy;if(x<1||y<1||x>=CFG.size-1||y>=CFG.size-1)return false;let t=tiles[idx(x,y)].type;if(blockedAt(x,y))return false;const now=performance.now();movePetTo(state.x,state.y,now);sampleMotion(now);motion.fromX=motion.x;motion.fromY=motion.y;motion.started=now;motion.walkUntil=now+CFG.moveDelay;if(dx)motion.facing=dx;motion.row=dy<0?3:dy>0?0:dx<0?1:2;state.x=x;state.y=y;state.steps++;reveal();updateUI();if(Date.now()-lastSave>2000)save();afterTravel();return true}
 function showModal(html){dismissSpeech();keys.clear();clickTarget=null;$('modalContent').innerHTML=`<button class="close" aria-label="Close dialog">×</button>${html}`;$('modalContent').querySelector('.close').onclick=()=>{if(combat){notify('Finish the encounter or flee to leave.');return}$('modal').close();canvas.focus()};if(!$('modal').open)$('modal').showModal()}
 function closeModal(){combat=null;$('modal').close();save();canvas.focus()}
 function actionButton(text,id,kind='primary'){return `<button class="${kind}" id="${id}">${text}</button>`}
@@ -53,50 +62,84 @@ function finishTurn(){updateUI();save();if(state.hp<=0){const protectedByVault=s
 function victory(message){const p=combat.place;if(p.entityId&&!state.defeatedEnemies.includes(p.entityId))state.defeatedEnemies.push(p.entityId);if(p.encounter){state.gold+=12;state.xp+=CFG.combatXP;combat=null;save();updateUI();showModal(`<div class="eyebrow">THE ROAD IS CLEAR · +12 GOLD</div><h2>A little wiser.</h2><p>You survive the encounter. +${CFG.combatXP} XP. The village is always there when you need to rest.</p><div class="actions">${actionButton('Continue travelling','continueTravel')}</div>`);$('continueTravel').onclick=closeModal;return}state.gold+=20;state.relics.push(p.id);state.cleared.push(p.id);state.xp+=CFG.relicXP;state.mana=Math.min(maxMana(),state.mana+5);combat=null;updateUI();save();showModal(`<div class="modal-icon">✧</div><div class="eyebrow">RELIC RECOVERED · +${CFG.relicXP} XP</div><h2>${p.relic}</h2><p>${message}</p><p>${state.relics.length===3?'All three relics are yours. Find the Sleeping Gate to the north.':`${3-state.relics.length} more relic${state.relics.length===1?'s':''} await discovery. Keep following the old roads.`}</p><div class="actions">${actionButton('Continue the journey →','continue')}</div>`);$('continue').onclick=()=>{closeModal();notify(p.relic+' added to your Bustagam.')}}
 function goHome(restore){state.x=40;state.y=44;resetMotion();if(restore){state.hp=CFG.maxHP;state.mana=maxMana()}clickTarget=null;reveal();updateUI();save()}
 function showBinder(){cards[0].desc=meleeDamage()+' damage. Scales with Might.';showModal(`<div class="eyebrow">THE TRAVELLER’S COLLECTION</div><h2>Your Bustagam</h2><p>Abilities, treasures, and the things worth carrying.</p><div class="pillars">${['Might','Wit','Arcane','Instinct','Influence','Resilience'].map((p,i)=>`<div>${p}<b>${state.character.pillars[PILLAR_INFO[i][0]]}</b></div>`).join('')}</div><div class="card-grid">${cards.map(c=>`<div class="play-card"><span class="symbol">${c.symbol}</span><strong>${c.name}</strong><small>${c.desc}</small></div>`).join('')}${state.ownedCards.map(id=>{const g=GOODS.find(g=>g.id===id);return `<div class="play-card"><span class="symbol">${g.icon}</span><strong>${g.name}</strong><small>${g.desc}</small></div>`}).join('')}${state.relics.map(id=>`<div class="play-card"><span class="symbol">✧</span><strong>${landmarks.find(p=>p.id===id).relic}</strong><small>Quest relic · a key to the Sleeping Gate</small></div>`).join('')}</div><p>${state.vaults} Vault Card · ${state.xp} XP · Your chosen six-pillar attributes.</p>`)}
-// Canvas artwork: deterministic terrain, layered trees, landmarks and soft fog.
+// The approved art is rendered from PNGs through the shared WorldArt pipeline.
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h))}
-function tree(x,y,t,v){rect(x+t*.44,y+t*.45,t*.13,t*.47,'#473f2e');ctx.fillStyle='#132d232d';ctx.beginPath();ctx.ellipse(x+t*.5,y+t*.83,t*.43,t*.17,0,0,7);ctx.fill();x+=(reducedMotion?.matches||preferences.reduceMotion)?0:Math.sin(animationTime()/1400+v*.7)*1.3;rect(x+t*.15,y+t*.24,t*.7,t*.46,palette.tree);rect(x+t*.24,y+t*.08,t*.5,t*.6,palette.leaves);rect(x+t*.36,y+t*.02,t*.24,t*.26,palette.highlight);rect(x+t*.16,y+t*.35,t*.23,t*.18,palette.leaves);rect(x+t*.62,y+t*.3,t*.2,t*.22,palette.tree)}
-function building(p,x,y,t){let w=t*1.6,h=t*1.3;rect(x-w*.6,y+t*.28,w*1.3,t*.4,'#14251c44');if(['safe','town','shop','house'].includes(p.kind)){rect(x-w/2,y-h*.32,w,h,'#b09d70');rect(x-w*.42,y+h*.12,w*.84,h*.55,'#c6b78c');ctx.fillStyle=p.kind==='safe'?'#654e38':'#76513b';ctx.beginPath();ctx.moveTo(x-w*.65,y);ctx.lineTo(x,y-h*.85);ctx.lineTo(x+w*.65,y);ctx.fill();rect(x-w*.2,y-h*.35,w*.1,h*.09,'#907158');rect(x-t*.13,y+t*.3,t*.26,t*.55,'#3d4230');rect(x-t*.53,y+t*.22,t*.22,t*.22,'#e9cb7b');rect(x+t*.3,y+t*.22,t*.22,t*.22,'#e9cb7b');rect(x+t*.35,y-h*.8,t*.2,t*.5,'#8c8061');if(p.kind==='safe'){ctx.fillStyle='#c9d0b122';ctx.beginPath();ctx.arc(x+t*.46,y-h,5+Math.sin(animationTime()/800)*2,0,7);ctx.fill()}}
- else if(p.kind==='ruin'){for(let i=-1;i<=1;i+=2){rect(x+i*t*.55-t*.13,y-t*.7,t*.26,t*1.35,'#8b9480');rect(x+i*t*.55-t*.19,y-t*.75,t*.38,t*.17,'#b1b29a');rect(x+i*t*.55-t*.17,y+t*.53,t*.34,t*.2,'#697762')}rect(x-t*.7,y-t*.78,t*1.4,t*.23,'#a1a48b');rect(x-t*.6,y+t*.65,t*1.2,t*.18,'#929b80');ctx.fillStyle=state.relics.includes(p.id)?'#5f8b66':'#dcc487';ctx.beginPath();ctx.moveTo(x,y-t*.35);ctx.lineTo(x+t*.17,y);ctx.lineTo(x,y+t*.35);ctx.lineTo(x-t*.17,y);ctx.fill()}
- else if(p.kind==='rift'){ctx.strokeStyle='#8d809e';ctx.lineWidth=t*.22;ctx.beginPath();ctx.ellipse(x,y,t*.57,t*.85,0,Math.PI,Math.PI*2);ctx.stroke();rect(x-t*.68,y,t*.22,t*.8,'#77867b');rect(x+t*.46,y,t*.22,t*.8,'#77867b');let glow=ctx.createRadialGradient(x,y,0,x,y,t);glow.addColorStop(0,state.relics.length===3?'#ccaff0b0':'#9c8db05a');glow.addColorStop(1,'#9c8db000');ctx.fillStyle=glow;ctx.fillRect(x-t,y-t,t*2,t*2);rect(x-t*.1,y+t*.45,t*.2,t*.2,'#d5c5df')}
- else if(p.kind==='farm'){rect(x-t*.45,y+t*.1,t*.9,t*.18,'#b29c67');rect(x-t*.1,y-t*.6,t*.2,t*.9,'#846b40');rect(x-t*.5,y-t*.35,t,t*.12,'#b29c67')}
- else{rect(x-t*.55,y+t*.2,t*1.1,t*.2,'#63583b');ctx.fillStyle='#b78c55';ctx.beginPath();ctx.moveTo(x-t*.65,y+t*.2);ctx.lineTo(x,y-t*.65);ctx.lineTo(x+t*.65,y+t*.2);ctx.fill();ctx.fillStyle='#3c4b33';ctx.beginPath();ctx.moveTo(x-t*.24,y+t*.2);ctx.lineTo(x,y-t*.3);ctx.lineTo(x+t*.24,y+t*.2);ctx.fill()}
- if(!atlas){landmarkAnimation(p,x,y,t);ctx.font='10px "DM Sans", sans-serif';ctx.textAlign='center';let tw=ctx.measureText(p.name).width;rect(x-tw/2-7,y+t*1.05,tw+14,20,'#11261ee6');ctx.fillStyle='#e0dfbf';ctx.fillText(p.name,x,y+t*1.05+14)}}
-function landmarkAnimation(p,x,y,t){
+function spriteShadow(x,y,rx,ry,alpha=.22){ctx.fillStyle=`rgba(32,48,23,${alpha})`;ctx.beginPath();ctx.ellipse(Math.round(x),Math.round(y),rx,ry,0,0,Math.PI*2);ctx.fill()}
+function tree(x,y,t,v,tx,ty){
+ const village=insideVillage(tx,ty),height=t*(village?4.1:2.9)*(1+(v%3)*.045),footX=x+t*.5,footY=y+t*.95;
+ const fade=ty>motion.y&&ty-motion.y<3&&Math.abs(tx-motion.x)<1.5;
+ spriteShadow(footX+t*.15,footY,t*.62,t*.15,.16);
+ WorldArt.draw(ctx,state.climate==='woodland'?'oak':'seasonal-trees',state.climate==='frost'?1:0,footX,footY,height,{alpha:fade?.15:1});
+}
+function buildingArt(p){
+ if(p.id==='bakery')return {name:'buildings',frame:0,height:3.6};
+ if(p.id==='cards')return {name:'buildings',frame:1,height:3.6};
+ if(p.id==='inn'||p.kind==='town')return {name:'buildings',frame:2,height:3.9};
+ if(p.kind==='ruin')return {name:'buildings',frame:3+Math.max(0,['ruin1','ruin2','ruin3'].indexOf(p.id)),height:3.5};
+ if(p.kind==='rift')return {name:'landmarks',frame:0,height:3.7};
+ if(p.kind==='camp')return {name:'landmarks',frame:1,height:2.3};
+ if(p.kind==='farm')return {name:'landmarks',frame:2,height:1.7};
+ return {name:'cottage',frame:0,height:3.8};
+}
+function building(p,x,y,t){
+ const a=buildingArt(p),foot=y+t*.4;
+ spriteShadow(x+t*.12,foot,t*.96,t*.2,.16);WorldArt.draw(ctx,a.name,a.frame,x,foot,t*a.height);
+ if(p.kind==='rift'||p.kind==='camp')landmarkAnimation(p,x,foot,t);
+ if(p.kind==='ruin'&&state.relics.includes(p.id)){ctx.fillStyle='#88a76f';ctx.font='15px Georgia';ctx.textAlign='center';ctx.fillText('✓',x,foot-t*.8);}
+ if(distance(state,p)<=4){ctx.font='10px "DM Sans",sans-serif';ctx.textAlign='center';const tw=ctx.measureText(p.name).width;rect(x-tw/2-7,foot+6,tw+14,19,'#243b2ddb');ctx.fillStyle='#eee3bb';ctx.fillText(p.name,x,foot+19);}
+}
+function landmarkAnimation(p,x,foot,t){
  const time=animationTime(),pulse=.5+.5*Math.sin(time/900);
- if(p.kind==='safe'){for(let i=0;i<3;i++){const age=((time/2400+i/3)%1);ctx.globalAlpha=.2*(1-age);ctx.fillStyle='#d4d7bc';ctx.beginPath();ctx.arc(x+t*.46+Math.sin(age*5+i)*4,y-t*1.1-age*24,3+age*5,0,7);ctx.fill()}ctx.globalAlpha=1}
- if(p.kind==='camp'){const fx=x+t*.9,fy=y+t*.32;const glow=ctx.createRadialGradient(fx,fy,0,fx,fy,t*.8);glow.addColorStop(0,'#efb95b45');glow.addColorStop(1,'#efb95b00');ctx.fillStyle=glow;ctx.fillRect(fx-t,fy-t,t*2,t*2);rect(fx-7,fy+4,14,3,'#60432b');ctx.fillStyle='#dfa34d';ctx.beginPath();ctx.moveTo(fx-5,fy+4);ctx.quadraticCurveTo(fx-7,fy-3,fx+Math.sin(time/140)*2,fy-10-pulse*3);ctx.quadraticCurveTo(fx+8,fy-1,fx+5,fy+4);ctx.fill();rect(fx-2,fy,4,5,'#f4d892')}
- if(p.kind==='rift'){ctx.strokeStyle=state.relics.length===3?'#dec1f0':'#b4a0c4';ctx.lineWidth=1;ctx.globalAlpha=.2+pulse*.25;ctx.beginPath();ctx.ellipse(x,y,t*(.3+pulse*.08),t*.63,Math.sin(time/1800)*.12,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;for(let i=0;i<5;i++){const angle=time/2200+i*Math.PI*2/5;rect(x+Math.cos(angle)*t*.46,y+Math.sin(angle)*t*.66,2,2,'#d7bde3')}}
- if(p.kind==='ruin'&&!state.relics.includes(p.id)){ctx.globalAlpha=.3+pulse*.35;rect(x-1,y-t*.6-Math.sin(time/700)*3,2,2,'#f1dda3');ctx.globalAlpha=1}
+ if(p.kind==='camp'){
+  const fx=x+t*.65,fy=foot-t*.2,glow=ctx.createRadialGradient(fx,fy,0,fx,fy,t*.65);
+  glow.addColorStop(0,`rgba(239,185,91,${.12+pulse*.07})`);glow.addColorStop(1,'#efb95b00');ctx.fillStyle=glow;ctx.fillRect(fx-t,fy-t,t*2,t*2);
+ }
+ if(p.kind==='rift'){
+  const cy=foot-t*1.65;ctx.globalAlpha=.25+pulse*.25;
+  for(let i=0;i<6;i++){const angle=time/2400+i*Math.PI/3;rect(x+Math.cos(angle)*t*.6,cy+Math.sin(angle)*t*1.15,2,2,state.relics.length===3?'#f0d49f':'#ccafe3');}
+  ctx.globalAlpha=1;
+ }
 }
 function player(x,y,t){
- const female=state.character.gender==='female';const time=animationTime(),walking=!(reducedMotion?.matches||preferences.reduceMotion)&&performance.now()<motion.walkUntil;
- const stride=walking?Math.sin(time/65):0,bob=walking?-Math.abs(stride)*1.8:Math.sin(time/650)*.45;
- rect(x-t*.2,y+t*.32,t*.45,t*.14,'#19342370');
- rect(x-t*.13,y+t*.15+stride*3,t*.1,t*.26,'#303c2b');rect(x+t*.06,y+t*.15-stride*3,t*.1,t*.26,'#303c2b');
- rect(x-t*.22,y-t*.1+bob,t*.44,t*.35,'#7a724a');
- rect(x-t*.2,y-t*.16+bob,t*.4,t*.4,female?'#789b87':'#d7bc81');rect(x-t*.24,y-t*.03+bob,t*.48,t*.21,'#a58754');
- rect(x-t*.13,y-t*.43+bob,t*.28,t*.27,'#d7be92');rect(x-t*.17,y-t*.48+bob,t*.36,t*.13,'#483d2b');
- if(female){rect(x-t*.19,y-t*.42+bob,t*.08,t*.32,'#51402c');rect(x+t*.14,y-t*.42+bob,t*.08,t*.32,'#51402c')}const look=motion.facing*.04*t;rect(x-t*.12+look,y-t*.34+bob,t*.06,t*.05,'#4b4630');rect(x+t*.07+look,y-t*.34+bob,t*.06,t*.05,'#4b4630');
- rect(x-t*.27,y+stride*1.5+bob,t*.09,t*.16,'#d7be92');rect(x+t*.22,y-stride*1.5+bob,t*.09,t*.16,'#d7be92');
- rect(x+t*.28,y-t*.1-stride+bob,t*.06,t*.55,'#d1c9a0');
- ctx.strokeStyle='#f2df9a66';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y+t*.52,t*.37,t*.13,0,0,7);ctx.stroke();
+ const walking=performance.now()<motion.walkUntil,foot=y+t*.45;
+ spriteShadow(x,foot,t*.28,t*.085);
+ WorldArt.draw(ctx,state.character.gender==='female'?'traveler-female':'traveler-male',WorldArt.frame(motion.row,walking,animationTime()),x,foot,t*1.32,{normalize:true});
+ ctx.strokeStyle='#f2df9a88';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,foot+2,t*.31,t*.1,0,0,Math.PI*2);ctx.stroke();
 }
 let view={w:0,h:0,t:32,ox:0,oy:0};
-function draw(){if(!state)return;advanceClock(performance.now());if(lifeMode!=='play'){requestAnimationFrame(draw);return;}const box=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(box.width*dpr)||canvas.height!==Math.round(box.height*dpr)){canvas.width=Math.round(box.width*dpr);canvas.height=Math.round(box.height*dpr)}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=false;const w=box.width,h=box.height,t=atlas?Math.min(w/CFG.size,h/CFG.size):CFG.tile;const frameTime=performance.now();sampleMotion(frameTime);const dt=motion.lastFrame?Math.min(50,Math.max(0,frameTime-motion.lastFrame)):16;motion.lastFrame=frameTime;const follow=(reducedMotion?.matches||preferences.reduceMotion)?1:1-Math.exp(-dt/65);motion.cameraX+=(motion.x-motion.cameraX)*follow;motion.cameraY+=(motion.y-motion.cameraY)*follow;const ox=atlas?(w-CFG.size*t)/2:w/2-motion.cameraX*t-t/2,oy=atlas?(h-CFG.size*t)/2:h/2-motion.cameraY*t-t/2;view={w,h,t,ox,oy};rect(0,0,w,h,palette.sky);
+function draw(){if(!state)return;if(!WorldArt.ready){requestAnimationFrame(draw);return;}advanceClock(performance.now());if(lifeMode!=='play'){requestAnimationFrame(draw);return;}const box=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);if(canvas.width!==Math.round(box.width*dpr)||canvas.height!==Math.round(box.height*dpr)){canvas.width=Math.round(box.width*dpr);canvas.height=Math.round(box.height*dpr)}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=false;const w=box.width,h=box.height,t=atlas?Math.min(w/CFG.size,h/CFG.size):CFG.tile;const frameTime=performance.now();sampleMotion(frameTime);const dt=motion.lastFrame?Math.min(50,Math.max(0,frameTime-motion.lastFrame)):16;motion.lastFrame=frameTime;const follow=(reducedMotion?.matches||preferences.reduceMotion)?1:1-Math.exp(-dt/65);motion.cameraX+=(motion.x-motion.cameraX)*follow;motion.cameraY+=(motion.y-motion.cameraY)*follow;const ox=atlas?(w-CFG.size*t)/2:w/2-motion.cameraX*t-t/2,oy=atlas?(h-CFG.size*t)/2:h/2-motion.cameraY*t-t/2;view={w,h,t,ox,oy};rect(0,0,w,h,palette.sky);
  const minX=Math.max(0,Math.floor(-ox/t)),maxX=Math.min(CFG.size,Math.ceil((w-ox)/t)),minY=Math.max(0,Math.floor(-oy/t)),maxY=Math.min(CFG.size,Math.ceil((h-oy)/t));
- for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++){let tile=tiles[idx(x,y)],px=ox+x*t,py=oy+y*t;let color=tile.type==='water'?palette.water:tile.type==='sand'?palette.sand:tile.type==='path'?'#a89b68':palette.grass[tile.v];rect(px,py,t,t,color);if(!atlas){drawLifeTile(tile,px,py,t,x,y);if(tile.type==='water'){const wave=Math.sin(animationTime()/850+x*.7+y*.4)*2;rect(px+4+wave,py+9,t*.4,2,palette.deep);rect(px+15-wave,py+23,t*.3,1,'#83a79a55')}else if(tile.type==='path'){rect(px+5,py+7,3,2,'#8e845b');rect(px+21,py+23,4,2,'#bbae79')}else if(tile.type==='mountain'){ctx.fillStyle=palette.mountain;ctx.beginPath();ctx.moveTo(px-3,py+t);ctx.lineTo(px+t*.5,py-8);ctx.lineTo(px+t+6,py+t);ctx.fill();ctx.fillStyle='#c4c6ad';ctx.beginPath();ctx.moveTo(px+t*.3,py+8);ctx.lineTo(px+t*.5,py-8);ctx.lineTo(px+t*.7,py+8);ctx.fill()}else if(tile.type!=='tree'){let n=noise(x,y,hash(state.seed));rect(px+7,py+12,2,3,'#b5c08455');rect(px+22,py+25,3,2,'#3b613344');if(n>.94){rect(px+18,py+10,3,3,palette===PALETTES.autumn?'#e4b269':'#d3ce9b');rect(px+19,py+13,1,4,'#47653c')}}}}
- if(!atlas){for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++)if(tiles[idx(x,y)].type==='tree')tree(ox+x*t,oy+y*t,t,x+y*3)}
- for(const p of landmarks){if(!state.seen.has(idx(p.x,p.y)))continue;let x=ox+(p.x+.5)*t,y=oy+(p.y+.5)*t;if(atlas){rect(x-2,y-2,5,5,p.kind==='rift'?'#cc99e8':p.kind==='ruin'?'#e0ca8a':'#e9e3bc')}else building(p,x,y,t)}
- drawLifeEntities(ox,oy,t);drawEnemies(ox,oy,t);
- if(!atlas)player(ox+(motion.x+.5)*t,oy+(motion.y+.5)*t,t);
+ for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++){
+  const tile=tiles[idx(x,y)],px=ox+x*t,py=oy+y*t;
+  if(atlas){rect(px,py,t,t,tile.type==='water'?palette.water:tile.type==='path'?'#baa569':palette.grass[tile.v]);continue;}
+  let mask=0;for(const [dx,dy,bit]of[[0,-1,1],[1,0,2],[0,1,4],[-1,0,8]])if(tiles[idx(x+dx,y+dy)]?.type!=='path')mask|=bit;
+  WorldArt.ground(ctx,tile,px,py,t,x,y,state.climate,mask);drawLifeTile(tile,px,py,t,x,y);
+ }
+ if(atlas){for(const p of landmarks)if(state.seen.has(idx(p.x,p.y)))rect(ox+(p.x+.5)*t-2,oy+(p.y+.5)*t-2,5,5,p.kind==='rift'?'#cc99e8':p.kind==='ruin'?'#e0ca8a':'#e9e3bc');}
+ else{
+  // Sort every object by its ground anchor; roofs and canopies can cover things behind them.
+  const layers=[];
+  for(let y=Math.max(0,minY-1);y<Math.min(CFG.size,maxY+5);y++)for(let x=Math.max(0,minX-2);x<Math.min(CFG.size,maxX+2);x++){
+   const tile=tiles[idx(x,y)];if(!state.seen.has(idx(x,y)))continue;
+   if(tile.type==='tree')layers.push({depth:y+.95,paint:()=>tree(ox+x*t,oy+y*t,t,x+y*3,x,y)});
+   if(tile.type==='grass'&&!insideVillage(x,y)&&noise(x,y,59)>.985&&!landmarks.some(p=>distance(p,{x,y})<4))layers.push({depth:y+.9,paint:()=>WorldArt.draw(ctx,'landmarks',5,ox+(x+.5)*t,oy+(y+.9)*t,t*.75)});
+   if(tile.type==='mountain')layers.push({depth:y+.95,paint:()=>WorldArt.draw(ctx,'landmarks',4,ox+(x+.5)*t,oy+(y+.95)*t,t*2.4)});
+  }
+  for(const p of landmarks)if(state.seen.has(idx(p.x,p.y)))layers.push({depth:p.y+.9,paint:()=>building(p,ox+(p.x+.5)*t,oy+(p.y+.5)*t,t)});
+  for(const n of villagers)if(state.seen.has(idx(n.x,n.y)))layers.push({depth:n.y+.95,paint:()=>drawVillager(n,ox+(n.x+.5)*t,oy+(n.y+.5)*t,t)});
+  for(const a of animals)if(a.id!==state.pet?.id&&state.seen.has(idx(a.x,a.y)))layers.push({depth:a.y+.95,paint:()=>drawAnimal(a,ox+(a.x+.5)*t,oy+(a.y+.5)*t,t)});
+  for(const e of enemies)if(enemyAlive(e)&&state.seen.has(idx(e.x,e.y)))layers.push({depth:e.y+.95,paint:()=>drawEnemy(e,ox+(e.x+.5)*t,oy+(e.y+.5)*t,t)});
+  if(state.pet){if(petMotion.lastId!==state.pet.id)resetPetMotion();samplePetMotion(performance.now());layers.push({depth:petMotion.y+.95,paint:()=>drawAnimal({...state.pet,x:state.x,row:petMotion.row,walking:performance.now()<petMotion.walkUntil},ox+(petMotion.x+.5)*t,oy+(petMotion.y+.5)*t,t,true)});}
+  layers.push({depth:motion.y+.95,paint:()=>player(ox+(motion.x+.5)*t,oy+(motion.y+.5)*t,t)});
+  layers.sort((a,b)=>a.depth-b.depth).forEach(layer=>layer.paint());
+ }
  for(let y=minY;y<maxY;y++)for(let x=minX;x<maxX;x++){const seen=state.seen.has(idx(x,y)),d=Math.hypot(x-state.x,y-state.y);if(!seen)rect(ox+x*t,oy+y*t,t+.2,t+.2,atlas?'#14251f':'#15291ff5');else if(!atlas&&d>CFG.vision-2)rect(ox+x*t,oy+y*t,t+.2,t+.2,'#10241a55')}
  drawDayNight(w,h,ox,oy,t);
- if(atlas){ctx.fillStyle='#f5df9a';ctx.beginPath();ctx.arc(ox+(state.x+.5)*t,oy+(state.y+.5)*t,4,0,7);ctx.fill();ctx.font='12px Georgia';ctx.textAlign='center';ctx.fillStyle='#ded9b9';ctx.fillText('YOUR EXPLORED ATLAS',w/2,32)}else{let vignette=ctx.createRadialGradient(w/2,h/2,h*.2,w/2,h/2,w*.65);vignette.addColorStop(0,'#07150d00');vignette.addColorStop(1,'#07150d88');ctx.fillStyle=vignette;ctx.fillRect(0,0,w,h)}
+ if(atlas){ctx.fillStyle='#f5df9a';ctx.beginPath();ctx.arc(ox+(state.x+.5)*t,oy+(state.y+.5)*t,4,0,7);ctx.fill();ctx.font='12px Georgia';ctx.textAlign='center';ctx.fillStyle='#ded9b9';ctx.fillText('YOUR EXPLORED ATLAS',w/2,32)}else{let vignette=ctx.createRadialGradient(w/2,h/2,h*.2,w/2,h/2,w*.65);vignette.addColorStop(0,'#07150d00');vignette.addColorStop(1,'#07150d38');ctx.fillStyle=vignette;ctx.fillRect(0,0,w,h)}
  positionSpeech(w,h,ox,oy,t);
  const now=performance.now();if(now-lastMove>CFG.moveDelay&&!$('modal').open){let dx=keys.has('a')||keys.has('arrowleft')?-1:keys.has('d')||keys.has('arrowright')?1:0,dy=keys.has('w')||keys.has('arrowup')?-1:keys.has('s')||keys.has('arrowdown')?1:0;if(dx||dy){move(dx,dx?0:dy);lastMove=now;clickTarget=null}else if(clickTarget){const path=findPath(state,clickTarget);if(path.length){move(path[0].x-state.x,path[0].y-state.y);lastMove=now}else clickTarget=null}}
  requestAnimationFrame(draw)}
-function findPath(start,end){const queue=[start],prev=new Map([[idx(start.x,start.y),null]]);let found=false;for(let i=0;i<queue.length&&i<1500;i++){const p=queue[i];if(p.x===end.x&&p.y===end.y){found=true;break}for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy;if(x<1||y<1||x>=CFG.size-1||y>=CFG.size-1)continue;const id=idx(x,y);if(prev.has(id)||!state.seen.has(id)||['water','tree','mountain'].includes(tiles[id].type))continue;prev.set(id,p);queue.push({x,y})}}if(!found)return[];const path=[];let p=end;while(p.x!==start.x||p.y!==start.y){path.unshift(p);p=prev.get(idx(p.x,p.y))}return path}
+function findPath(start,end){const queue=[start],prev=new Map([[idx(start.x,start.y),null]]);let found=false;for(let i=0;i<queue.length&&i<1500;i++){const p=queue[i];if(p.x===end.x&&p.y===end.y){found=true;break}for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy;if(x<1||y<1||x>=CFG.size-1||y>=CFG.size-1)continue;const id=idx(x,y);if(prev.has(id)||!state.seen.has(id)||blockedAt(x,y))continue;prev.set(id,p);queue.push({x,y})}}if(!found)return[];const path=[];let p=end;while(p.x!==start.x||p.y!==start.y){path.unshift(p);p=prev.get(idx(p.x,p.y))}return path}
 function toggleAtlas(){if($('modal').open)return;atlas=!atlas;clickTarget=null;$('mapToggle').innerHTML=(atlas?'Explore':'Atlas')+' <kbd>M</kbd>';$('prompt').hidden=atlas||!near;$('atlasInfo').hidden=!atlas;if(atlas)dismissSpeech()}
 document.addEventListener('keydown',e=>{if(lifeMode!=='play')return;if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','m'].includes(k))e.preventDefault();if(e.repeat&&(k==='e'||k==='m'))return;if(k==='e')interact();else if(k==='m')toggleAtlas();else keys.add(k)});document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>keys.clear());window.addEventListener('pagehide',save);
 $('modal').addEventListener('cancel',e=>{if(combat)e.preventDefault()});canvas.addEventListener('click',e=>{canvas.focus();if(atlas)return;const box=canvas.getBoundingClientRect(),x=Math.floor((e.clientX-box.left-view.ox)/view.t),y=Math.floor((e.clientY-box.top-view.oy)/view.t);if(x>=0&&y>=0&&x<CFG.size&&y<CFG.size){if(distance(state,{x,y})===0)interact();else if(findPath(state,{x,y}).length)clickTarget={x,y};else notify('Follow the open ground and trails. Trees, peaks, and deep water block the way.')}});

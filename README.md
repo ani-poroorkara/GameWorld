@@ -20,7 +20,7 @@ Scope: browser-local single player, a fixed home village within generated terrai
 
 Run `node smoke-check.cjs` for world and gameplay checks. Run `node bundle.cjs` after changes to rebuild the standalone `MyWorld.html` file.
 
-The optional Google Fonts request improves typography; local serif and sans-serif fallbacks work offline. The game itself requires no packages or external assets.
+The optional Google Fonts request improves typography; local serif and sans-serif fallbacks work offline. The game requires no runtime packages. Its pixel-art PNGs are shipped locally under `assets/art/`, and the standalone export embeds them.
 
 ## Opponents and touch controls
 
@@ -30,7 +30,7 @@ Phone and tablet layouts include 44–48px direction controls, an interact butto
 
 ## GitHub Pages
 
-The `prototype` directory is ready to become the repository root. `node build-pages.cjs` prepares only the five runtime game files in `dist/`. `.github/workflows/pages.yml` runs checks and deploys `dist/` when manually started. Select GitHub Actions as the repository Pages source. The publishing repository is https://github.com/ani-poroorkara/GameWorld.
+The `prototype` directory is ready to become the repository root. `node build-pages.cjs` prepares the eight runtime files and all eighteen registered PNG sprite sources in `dist/`. `.github/workflows/pages.yml` runs checks and deploys `dist/` when manually started. Select GitHub Actions as the repository Pages source. The publishing repository is https://github.com/ani-poroorkara/GameWorld.
 
 ## Private playtest prompt
 
@@ -39,3 +39,11 @@ A shared access-code prompt appears before the menu, with an authorized-playtest
 Live playtest: https://ani-poroorkara.github.io/GameWorld/
 
 Future GitHub Pages deployments are manual. The shared playtest code is distributed separately. Run `node access-check.cjs` to verify the gate.
+
+## Continuing development and artwork
+
+Start with [AGENTS.md](AGENTS.md) and the [Style B art and implementation guide](docs/ART_GUIDE.md). The guide records the approved playable reference, visual rules, sprite layouts, drawing sizes, source pipeline, collision and save requirements, packaging, and browser checks. Exact generation prompts are in [ART_PROMPTS.md](docs/ART_PROMPTS.md).
+
+The game uses eighteen PNG sources with 167 bounded sprite frames: both travelers, eight animal species, six villagers, guardians and thieves, houses and shops, three ruins, camp, gate, crops, fences, mountains, boulders, and seasonal oaks. Directional characters use three columns by four rows. World sprites, character selection and combat portraits share the same source artwork.
+
+Open `/art-preview/` for the preserved approved scene and `/art-preview/catalog.html` to inspect the full current asset set. Run `node art-check.cjs` after art changes, alongside the existing gameplay and access checks. Run `node prepare-art.cjs` only when PNGs or their grid registrations change; it records alpha bounds without rewriting the images. Both `node build-pages.cjs` and `node bundle.cjs` include all registered artwork.

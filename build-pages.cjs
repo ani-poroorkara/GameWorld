@@ -1,8 +1,10 @@
-const fs=require('node:fs');
-const path=require('node:path');
-const output=path.join(__dirname,'dist');
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const output=path.join(__dirname,'dist'),manifest=require('./art-manifest.js');
 fs.mkdirSync(output,{recursive:true});
-// An explicit allowlist keeps local screenshots, saves, and development tools out.
-for(const name of ['index.html','style.css','access.js','world-life.js','encounters.js','game.js'])fs.copyFileSync(path.join(__dirname,name),path.join(output,name));
+// Explicit allowlists keep saves, workshop files and development screenshots out.
+const runtime=['index.html','style.css','art-manifest.js','art.js','access.js','world-life.js','encounters.js','game.js'];
+for(const name of runtime)fs.copyFileSync(path.join(__dirname,name),path.join(output,name));
+for(const source of Object.values(manifest.sources)){if(!/^assets\/art\/[a-z-]+\.png$/.test(source.file))throw Error('Unexpected art path');const destination=path.join(output,source.file);fs.mkdirSync(path.dirname(destination),{recursive:true});fs.copyFileSync(path.join(__dirname,source.file),destination);}
 fs.writeFileSync(path.join(output,'.nojekyll'),'');
-console.log('GitHub Pages build ready in prototype/dist (6 game files, no runtime dependencies).');
+console.log(`GitHub Pages build ready in dist/ (${runtime.length} runtime files and ${Object.keys(manifest.sources).length} PNG sprite sources).`);

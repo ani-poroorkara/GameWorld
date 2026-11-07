@@ -31,21 +31,9 @@ function spawnTravelEnemy(type){
  const pos=possibilities.find(p=>p.x>0&&p.y>0&&p.x<CFG.size-1&&p.y<CFG.size-1&&!isSafe(p.x,p.y)&&!['water','mountain','tree'].includes(tiles[idx(p.x,p.y)].type)&&!enemies.some(e=>enemyAlive(e)&&distance(e,p)<2));
  if(!pos)return null;const e={id:'ambush-'+state.steps,type:type==='robber'?'thief':'boar',name:type==='robber'?'Road Thief':'Wild Boar',...pos};enemies.push(e);return e;
 }
-function enemyPortrait(type){
- const body=type==='boar'?'<path fill="#876d56" d="M5 13h21v12H5zm18-5h9v15h-9zM7 24h4v6H7zm13 0h4v6h-4z"/><path fill="#dfd5b2" d="M30 20h3v7h-3z"/><path fill="#252f24" d="M28 12h2v2h-2z"/>':type==='thief'?'<path fill="#393d39" d="M10 3h16v19H10zM6 19h24v11H6z"/><path fill="#b79d7b" d="M13 10h11v8H13z"/><path fill="#151f19" d="M11 14h15v6H11z"/><path fill="#99a49a" d="M29 16h3v16h-3z"/>':'<path fill="#7d9081" d="M10 2h17v15H10zM6 17h25v14H6z"/><path fill="#b2c2a7" d="M11 3h14v3H11z"/><path fill="#e4ce83" d="M13 9h3v3h-3zm8 0h3v3h-3zM16 20h6v7h-6z"/>';
- return `<svg viewBox="0 0 36 36" role="img" aria-label="${type==='boar'?'Wild boar':type==='thief'?'Road thief':'Stone guardian'}" shape-rendering="crispEdges">${body}</svg>`;
-}
+function enemyPortrait(type){return WorldArt.portrait(type==='boar'?'boar':type==='thief'?'thief':'guardian',1,type==='boar'?'Wild boar':type==='thief'?'Road thief':'Stone guardian')}
 function drawEnemy(e,x,y,t){
- if(e.type==='boar'){
-  drawAnimal({species:'boar',x:e.x},x,y,t);rect(x+t*.29,y+t*.04,t*.06,t*.22,'#e1d7b7');
- }else if(e.type==='thief'){
-  drawVillager({...e,color:'#454a40'},x,y,t);rect(x-t*.15,y-t*.43,t*.35,t*.14,'#373d34');rect(x-t*.12,y-t*.19,t*.28,t*.09,'#27362d');rect(x+t*.25,y-t*.04,t*.055,t*.38,'#b7bc9f');
- }else{
-  const pulse=.65+Math.sin(animationTime()/600)*.2;rect(x-t*.3,y+t*.28,t*.65,t*.14,'#192e2455');
-  rect(x-t*.3,y-t*.18,t*.6,t*.55,'#788b79');rect(x-t*.22,y-t*.66,t*.44,t*.46,'#8d9e86');rect(x-t*.25,y-t*.72,t*.5,t*.1,'#b2b99b');
-  rect(x-t*.38,y-t*.1,t*.12,t*.4,'#677e6b');rect(x+t*.26,y-t*.1,t*.12,t*.4,'#677e6b');rect(x-t*.24,y+t*.3,t*.17,t*.2,'#6c806a');rect(x+t*.07,y+t*.3,t*.17,t*.2,'#6c806a');
-  ctx.globalAlpha=pulse;rect(x-t*.13,y-t*.5,t*.08,t*.06,'#ecd495');rect(x+t*.05,y-t*.5,t*.08,t*.06,'#ecd495');rect(x-t*.06,y,t*.12,t*.2,'#e1c47b');ctx.globalAlpha=1;
- }
- ctx.fillStyle='#e1b98c';ctx.font='9px Georgia';ctx.textAlign='center';ctx.fillText(e.type==='guardian'?'Guardian':e.name,x,y-t*(e.type==='guardian'?.95:.65));
+ const foot=y+t*.45,height=e.type==='boar'?.91:e.type==='guardian'?1.65:1.32;
+ spriteShadow(x,foot,t*.3,t*.08);WorldArt.draw(ctx,e.type,1,x,foot,t*height,{normalize:true});
+ if(distance(state,e)<=3){ctx.fillStyle='#f2d6a4';ctx.font='10px Georgia';ctx.textAlign='center';ctx.fillText(e.type==='guardian'?'Guardian':e.name,x,foot-t*height-7);}
 }
-function drawEnemies(ox,oy,t){if(atlas)return;for(const e of enemies)if(enemyAlive(e)&&state.seen.has(idx(e.x,e.y)))drawEnemy(e,ox+(e.x+.5)*t,oy+(e.y+.5)*t,t)}

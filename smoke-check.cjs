@@ -5,12 +5,14 @@ let clock=1000;const motionPreference={matches:false};
 const paint=new Proxy({measureText:s=>({width:s.length*6}),createRadialGradient:()=>({addColorStop(){}})},{get:(o,k)=>k in o?o[k]:()=>{}});
 function element(id){if(!elements.has(id))elements.set(id,{value:id==='climate'?'woodland':'',style:{},dataset:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},getContext:()=>paint,getBoundingClientRect:()=>({width:1000,height:520,left:0,top:0}),querySelector:()=>element(id+'child'),querySelectorAll:()=>[],addEventListener(){},focus(){},showModal(){this.open=true},close(){this.open=false},open:false});return elements.get(id)}
 const context=vm.createContext({console,Set,Map,Math,Date,JSON,Number,document:{body:element('body'),documentElement:{style:{setProperty(){}}},getElementById:element,querySelectorAll:()=>[],addEventListener(){}},window:{devicePixelRatio:1,matchMedia:()=>motionPreference,addEventListener(){}},localStorage:{setItem:(k,v)=>storage.set(k,v),getItem:k=>storage.get(k)||null},performance:{now:()=>clock},setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){}});
+vm.runInContext(fs.readFileSync(__dirname+'/art-manifest.js','utf8'),context);
+vm.runInContext(fs.readFileSync(__dirname+'/art.js','utf8'),context);
 vm.runInContext(fs.readFileSync(__dirname+'/world-life.js','utf8'),context);
 vm.runInContext(fs.readFileSync(__dirname+'/encounters.js','utf8'),context);
 vm.runInContext(fs.readFileSync(__dirname+'/game.js','utf8'),context);
 const run=code=>vm.runInContext(code,context);
 run("lifeMode='play'");
-function reachable(){return run(`(()=>{const q=[{x:40,y:44}],seen=new Set([idx(40,44)]);for(let i=0;i<q.length;i++){const p=q[i];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){let x=p.x+dx,y=p.y+dy;if(x<1||y<1||x>=CFG.size-1||y>=CFG.size-1)continue;let id=idx(x,y);if(seen.has(id)||['water','tree','mountain'].includes(tiles[id].type))continue;seen.add(id);q.push({x,y})}}return landmarks.every(p=>seen.has(idx(p.x,p.y)))})()`)}
+function reachable(){return run(`(()=>{const q=[{x:40,y:44}],seen=new Set([idx(40,44)]);for(let i=0;i<q.length;i++){const p=q[i];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){let x=p.x+dx,y=p.y+dy;if(x<1||y<1||x>=CFG.size-1||y>=CFG.size-1)continue;let id=idx(x,y);if(seen.has(id)||blockedAt(x,y))continue;seen.add(id);q.push({x,y})}}return landmarks.every(p=>[...seen].some(id=>distance(p,{x:id%CFG.size,y:Math.floor(id/CFG.size)})<=2))})()`)}
 for(let i=0;i<100;i++){run(`generate('CHECK-${i}', '${['woodland','autumn','frost'][i%3]}')`);assert(reachable(),'Disconnected landmark for seed '+i)}
 run("generate('ASHWOOD-724','woodland')");const terrain=run('JSON.stringify(tiles)');run("generate('ASHWOOD-724','woodland')");assert.equal(run('JSON.stringify(tiles)'),terrain,'Same seed must reproduce terrain');run("generate('OTHER-SEED','woodland')");assert.notEqual(run('JSON.stringify(tiles)'),terrain,'Different seeds must change terrain');
 run("generate('ASHWOOD-724','woodland'); draw(); showBinder(); closeModal(); toggleAtlas(); draw(); toggleAtlas()");
@@ -26,7 +28,7 @@ run("closeModal();generate('ASHWOOD-724','woodland');move(0,-1)");
 assert.equal(run('state.y'),43);assert.equal(run('motion.y'),44,'Visual position starts at previous tile');
 clock+=55;run('sampleMotion(performance.now())');assert.equal(run('motion.y'),43.5,'Position interpolates halfway through a step');
 clock+=55;run('sampleMotion(performance.now())');assert.equal(run('motion.y'),43,'Position reaches destination');
-motionPreference.matches=true;run('move(0,-1);sampleMotion(performance.now())');assert.equal(run('motion.y'),42,'Reduced motion skips interpolation');assert.equal(run('animationTime()'),0,'Reduced motion stops ambient animation');
+motionPreference.matches=true;run('move(1,0);sampleMotion(performance.now())');assert.equal(run('motion.x'),41,'Reduced motion skips interpolation');assert.equal(run('animationTime()'),0,'Reduced motion stops ambient animation');
 motionPreference.matches=false;run('goHome(false)');assert.equal(run('motion.cameraY'),44,'Returning home resets camera immediately');
 run('for(const p of landmarks){state.x=p.x;state.y=p.y;resetMotion();reveal();draw()}');
 // Opening, character rules, and the real creation handler.
@@ -73,3 +75,11 @@ run('save()');const opponentSave=run('JSON.stringify({...state,seen:[...state.se
 assert(html.includes('viewport-fit=cover'));assert(html.includes('moreControls'));
 const css=fs.readFileSync(__dirname+'/style.css','utf8');assert(css.includes('(pointer:coarse)'));assert(css.includes('safe-area-inset-bottom'));
 console.log('PASS: world, character, economy, combat, save, pet and clock regressions; full-screen UI structure; non-blocking NPC and animal speech; distance dismissal; atlas-only progress; world sprites and portraits for guardians, thieves and boars; persistent enemy defeats; touch UI structure.');
+
+// Art migration: footprints must be shared by keyboard and pathfinding, without trapping old saves.
+run('closeModal();lifeMode="play";generate("FOOTPRINT-CHECK","woodland");state.x=40;state.y=43;resetMotion()');
+assert.equal(run('move(0,-1)'),false,'A roof is decorative, but the cottage foundation is solid');
+assert.equal(run('findPath(state,{x:40,y:42}).length'),0,'Click paths cannot enter building foundations');
+run('state.x=40;state.y=42;placeOnOpenGround()');assert.equal(run('blockedAt(state.x,state.y)'),false,'An existing save inside a new footprint moves to nearby open ground');
+for(const row of [0,1,2,3]){assert.equal(run(`WorldArt.frame(${row},false,0)`),row*3+1);}
+console.log('PASS: solid building footprints, shared movement/pathfinding collision, old-position migration and directional idle frames.');
