@@ -1,10 +1,10 @@
-# MyWorld — The Wilderlands
+# myWorld
 
-A local browser prototype exploring generated, walkable 2D worlds while preserving MyWorld's card encounters and Bustagam concept.
+A browser RPG with generated, walkable 2D worlds, card encounters and Bustagam.
 
 Open `index.html` directly, or run `node serve.cjs` from this folder and visit http://127.0.0.1:4173.
 
-The first screen offers Single Player, disabled Multiplayer and Create a Campaign entries, and Settings. Single Player supports a saved journey or a new generic male/female traveller, with eight points to distribute above the six pillars' base of one. Stats affect health, mana, melee damage, magic, dice, negotiation, and store prices. Appearance has no stat effect.
+The title screen centers the myWorld name and a small pixel fantasy globe on black, with plain text Single Player, disabled Multiplayer and Create a Campaign entries, and Settings below. The bundled Pixelify Sans font also works offline. Single Player supports a saved journey or a new generic male/female traveller, with eight points to distribute above the six pillars' base of one. Stats affect health, mana, melee damage, magic, dice, negotiation, and store prices. Appearance has no stat effect.
 
 Hearthstead is the player's safe village. The fields behind the home, horse pen to the left, and animals to the right follow the supplied sketch. Residents offer dialogue; shops sell food and permanent cards. Use Food & companion to eat, or E beside a friendly animal to pet it or keep it as your one companion. Replacing a companion requires a separate confirmation. Pets persist in the save and when generating another landscape; creating a new character starts without a companion.
 
